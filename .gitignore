@@ -1,0 +1,59 @@
+# --- secrets & local config (MUST NEVER be committed) ---
+.env
+.env.local
+.env.*.local
+*.pem
+*.key
+
+# --- ItemIQ runtime artefacts ---
+itemiq.db
+itemiq.db-journal
+*.sqlite
+*.sqlite3
+server.log
+*.log
+
+# --- Python ---
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.mypy_cache/
+.ruff_cache/
+
+# --- virtual environments ---
+.venv/
+venv/
+env/
+ENV/
+
+# --- editors / IDEs ---
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# --- large media (audio stays in OneDrive only) ---
+*.m4a
+*.mp3
+*.wav
+*.mp4
+audio/
+
+# --- OS junk ---
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# --- tooling state (kept out of the repo) ---
+.claude/
+.understand-anything/
+
+# --- TypeScript incremental build cache (machine-local) ---
+*.tsbuildinfo

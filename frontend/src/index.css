@@ -1,0 +1,255 @@
+@import 'tailwindcss';
+
+/*
+  ItemIQ design system — SIUT crimson brand.
+  Hallmark · genre: editorial · macrostructure: Clinical Workbench (app) / Long
+  Document (marketing) · theme: custom crimson-tinted OKLCH · design-system:
+  design.md · designed-as-app
+
+  shadcn-compatible tokens (light default + .dark), plus a validated,
+  colourblind-safe categorical palette reserved for data visualisation.
+  Neutrals lean warm toward the crimson hue (≈25°) — no cool SaaS greys.
+*/
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+:root {
+  --radius: 0.5rem;
+
+  /* Surfaces & text — crimson-tinted warm neutrals */
+  --background: oklch(0.985 0.004 25);
+  --foreground: oklch(0.24 0.015 25);
+  --card: oklch(0.995 0.003 25);
+  --card-foreground: oklch(0.24 0.015 25);
+  --popover: oklch(0.995 0.003 25);
+  --popover-foreground: oklch(0.24 0.015 25);
+  --muted: oklch(0.955 0.006 25);
+  --muted-foreground: oklch(0.47 0.012 25);
+  --accent: oklch(0.955 0.02 26);
+  --accent-foreground: oklch(0.36 0.12 26);
+  --border: oklch(0.885 0.008 25);
+  --input: oklch(0.885 0.008 25);
+  --ring: oklch(0.50 0.21 26);
+
+  /* SIUT crimson brand */
+  --primary: oklch(0.50 0.21 26);
+  --primary-foreground: oklch(0.985 0.004 25);
+  --brand-700: oklch(0.33 0.15 26);
+  --brand-600: oklch(0.42 0.17 26);
+  --brand-500: oklch(0.50 0.21 26);
+  --brand-400: oklch(0.60 0.19 27);
+  --brand-300: oklch(0.74 0.12 27);
+  --brand-200: oklch(0.90 0.05 27);
+  --brand-100: oklch(0.96 0.02 26);
+
+  --secondary: oklch(0.955 0.006 25);
+  --secondary-foreground: oklch(0.30 0.012 25);
+  --destructive: oklch(0.52 0.17 25);
+  --destructive-foreground: oklch(0.985 0.004 25);
+
+  /* Semantic status */
+  --success: oklch(0.55 0.15 150);
+  --warning: oklch(0.78 0.15 85);
+  --serious: oklch(0.62 0.16 50);
+  --critical: oklch(0.52 0.17 25);
+  --info: oklch(0.55 0.14 250);
+
+  /* Difficulty semantics */
+  --difficulty-easy: oklch(0.55 0.15 150);
+  --difficulty-medium: oklch(0.70 0.15 80);
+  --difficulty-hard: oklch(0.52 0.17 25);
+
+  /* Categorical dataviz series (fixed order — never cycled, reserved for charts) */
+  --series-1: #2a78d6;
+  --series-2: #1baf7a;
+  --series-3: #eda100;
+  --series-4: #008300;
+  --series-5: #4a3aa7;
+  --series-6: #e34948;
+  --series-7: #e87ba4;
+  --series-8: #eb6834;
+
+  --chart-grid: oklch(0.93 0.006 25);
+  --chart-axis: oklch(0.75 0.01 25);
+
+  --sidebar: oklch(0.99 0.003 25);
+  --sidebar-foreground: oklch(0.24 0.015 25);
+  --sidebar-border: oklch(0.90 0.007 25);
+
+  /* Motion */
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in: cubic-bezier(0.7, 0, 0.84, 0);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --dur-micro: 120ms;
+  --dur-short: 220ms;
+  --dur-long: 420ms;
+}
+
+.dark {
+  --background: oklch(0.16 0.008 25);
+  --foreground: oklch(0.94 0.006 25);
+  --card: oklch(0.195 0.009 25);
+  --card-foreground: oklch(0.94 0.006 25);
+  --popover: oklch(0.195 0.009 25);
+  --popover-foreground: oklch(0.94 0.006 25);
+  --muted: oklch(0.23 0.008 25);
+  --muted-foreground: oklch(0.80 0.008 25);
+  --accent: oklch(0.30 0.03 26);
+  --accent-foreground: oklch(0.88 0.04 27);
+  --border: oklch(0.28 0.008 25);
+  --input: oklch(0.28 0.008 25);
+  --ring: oklch(0.62 0.19 27);
+
+  --primary: oklch(0.62 0.19 27);
+  --primary-foreground: oklch(0.16 0.008 25);
+  --brand-700: oklch(0.33 0.15 26);
+  --brand-600: oklch(0.50 0.20 26);
+  --brand-500: oklch(0.62 0.19 27);
+  --brand-400: oklch(0.70 0.16 27);
+  --brand-300: oklch(0.80 0.10 27);
+  --brand-200: oklch(0.36 0.05 26);
+  --brand-100: oklch(0.28 0.03 26);
+
+  --secondary: oklch(0.23 0.008 25);
+  --secondary-foreground: oklch(0.94 0.006 25);
+  --destructive: oklch(0.62 0.17 25);
+  --destructive-foreground: oklch(0.985 0.004 25);
+
+  --success: oklch(0.68 0.15 150);
+  --warning: oklch(0.80 0.14 85);
+  --serious: oklch(0.68 0.15 50);
+  --critical: oklch(0.62 0.17 25);
+  --info: oklch(0.66 0.13 250);
+
+  --difficulty-easy: oklch(0.68 0.15 150);
+  --difficulty-medium: oklch(0.78 0.14 80);
+  --difficulty-hard: oklch(0.62 0.17 25);
+
+  --series-1: #3987e5;
+  --series-2: #199e70;
+  --series-3: #c98500;
+  --series-4: #2c9a2c;
+  --series-5: #9085e9;
+  --series-6: #e66767;
+  --series-7: #d55181;
+  --series-8: #d95926;
+
+  --chart-grid: oklch(0.30 0.008 25);
+  --chart-axis: oklch(0.40 0.01 25);
+
+  --sidebar: oklch(0.18 0.008 25);
+  --sidebar-foreground: oklch(0.94 0.006 25);
+  --sidebar-border: oklch(0.26 0.008 25);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  --color-brand-100: var(--brand-100);
+  --color-brand-200: var(--brand-200);
+  --color-brand-300: var(--brand-300);
+  --color-brand-400: var(--brand-400);
+  --color-brand-500: var(--brand-500);
+  --color-brand-600: var(--brand-600);
+  --color-brand-700: var(--brand-700);
+
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-serious: var(--serious);
+  --color-critical: var(--critical);
+  --color-info: var(--info);
+
+  --color-easy: var(--difficulty-easy);
+  --color-medium: var(--difficulty-medium);
+  --color-hard: var(--difficulty-hard);
+
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+
+  --font-sans: 'Geist', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-display: 'Fraunces', ui-serif, Georgia, 'Times New Roman', serif;
+  --font-mono: 'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+@layer base {
+  * {
+    border-color: var(--border);
+  }
+  html {
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+  body {
+    background-color: var(--background);
+    color: var(--foreground);
+    font-family: var(--font-sans);
+    font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+  }
+  /* Page-level headings are set in the editorial serif; in-context headings
+     (h3/h4 in dense data UIs) stay on the sans body for scannability. */
+  h1, h2 {
+    font-family: var(--font-display);
+    font-weight: 550;
+    letter-spacing: -0.02em;
+  }
+  ::selection {
+    background: var(--brand-200);
+    color: var(--brand-700);
+  }
+  /* Thin, tasteful scrollbars */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+  }
+}
+
+/* Subtle utility animations */
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.animate-fade-in { animation: fade-in var(--dur, 0.28s) cubic-bezier(0.16, 1, 0.3, 1); }
+
+/* Editorial labels: the SIUT · Examinations issue row, stat eyebrows. */
+.issue-label {
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+/* Tabular data alignment for tables and stat reads. */
+.tabular { font-variant-numeric: tabular-nums; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 150ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 150ms !important;
+  }
+}

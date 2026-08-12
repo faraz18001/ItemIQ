@@ -90,17 +90,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const registerUser = useCallback(async (name: string, email: string, password: string, role?: string) => {
-    const res = await api.post<{ access_token: string; role: Role }>('/auth/register', {
+    const res = await api.post<{ token: string; user: Session }>('/auth/register', {
       name,
       email,
       password,
       role: role || 'faculty',
     });
-    setToken(res.access_token);
-    // After registration, fetch the full session using the new token
-    const me = await api.get<Session>('/auth/me');
-    setSession(me);
-    return me;
+    setToken(res.token);
+    setSession(res.user);
+    return res.user;
   }, []);
 
   const loginAs = useCallback(

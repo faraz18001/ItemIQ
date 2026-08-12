@@ -1,15 +1,29 @@
 from fastapi import APIRouter, Depends, HTTPException, status
-from fastapi.security import OAuth2PasswordRequestForm
+from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from database import get_db, User
 from schemas import UserCreate
-from security import verify_password, create_access_token, get_password_hash
+from security import verify_password, create_access_token, get_password_hash, get_current_user
 
 router = APIRouter(prefix="/auth", tags=["Auth"])
 
+class LoginRequest(BaseModel):
+    identifier: str
+    password: str
+
+def serialize_user(user: User):
+    return {
+        "id": str(user.id),
+        "name": user.name,
+        "email": user.email,
+        "role": user.role,
+        "roles": [user.role],
+        "department": "SIUT Examinations",
+        "publicId": f"USR-{user.id}"
+    }
+
 @router.post("/register")
 def register(user_data: UserCreate, db: Session = Depends(get_db)):
-    # Check if user exists
     existing = db.query(User).filter(User.email == user_data.email).first()
     if existing:
         raise HTTPException(
@@ -17,7 +31,6 @@ def register(user_data: UserCreate, db: Session = Depends(get_db)):
             detail="Email already registered"
         )
     
-    # Create new user
     hashed_pw = get_password_hash(user_data.password)
     new_user = User(
         name=user_data.name,
@@ -29,19 +42,24 @@ def register(user_data: UserCreate, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(new_user)
     
-    # Auto-login after registration
-    access_token = create_access_token(data={"sub": str(new_user.id), "role": new_user.role})
-    return {"access_token": access_token, "token_type": "bearer", "role": new_user.role}
+    token = create_access_token(data={"sub": str(new_user.id), "role": new_user.role})
+    return {"token": token, "user": serialize_user(new_user)}
 
 @router.post("/login")
-def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
-    user = db.query(User).filter(User.email == form_data.username).first()
-    if not user or not verify_password(form_data.password, user.password_hash):
+def login(req: LoginRequest, db: Session = Depends(get_db)):
+    user = db.query(User).filter(User.email == req.identifier).first()
+    if not user or not verify_password(req.password, user.password_hash):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect email or password",
-            headers={"WWW-Authenticate": "Bearer"},
         )
     
-    access_token = create_access_token(data={"sub": str(user.id), "role": user.role})
-    return {"access_token": access_token, "token_type": "bearer", "role": user.role}
+    token = create_access_token(data={"sub": str(user.id), "role": user.role})
+    return {"token": token, "user": serialize_user(user)}
+
+@router.get("/me")
+def get_me(current_user: dict = Depends(get_current_user), db: Session = Depends(get_db)):
+    user = db.query(User).filter(User.id == current_user["id"]).first()
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+    return serialize_user(user)

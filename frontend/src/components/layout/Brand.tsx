@@ -2,20 +2,11 @@ import { cn } from '@/lib/utils';
 
 export function BrandMark({ className }: { className?: string }) {
   return (
-    <span
-      className={cn(
-        'grid size-8 shrink-0 place-items-center rounded-lg bg-primary text-primary-foreground font-bold shadow-sm',
-        className,
-      )}
-      aria-hidden
-    >
-      <svg viewBox="0 0 32 32" className="size-5">
-        <path
-          d="M9 22V10h2.6v12H9Zm5.2 0V10h2.5l3 5.4 3-5.4H23v12h-2.4v-7.4l-2.6 4.6h-.2l-2.6-4.6V22h-2.4Z"
-          fill="currentColor"
-        />
-      </svg>
-    </span>
+    <img 
+      src="/logo.png" 
+      alt="ItemIQ Logo" 
+      className={cn("size-10 object-contain", className)} 
+    />
   );
 }
 

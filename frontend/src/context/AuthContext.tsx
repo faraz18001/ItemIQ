@@ -25,6 +25,7 @@ interface AuthCtx {
   /** True until the stored token has been checked against the server. */
   loading: boolean;
   login: (identifier: string, password: string) => Promise<Session>;
+  register: (name: string, email: string, password: string, role?: string) => Promise<Session>;
   loginAs: (role: Role) => Promise<Session>;
   logout: () => Promise<void>;
 }
@@ -88,6 +89,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return res.user;
   }, []);
 
+  const registerUser = useCallback(async (name: string, email: string, password: string, role?: string) => {
+    const res = await api.post<{ access_token: string; role: Role }>('/auth/register', {
+      name,
+      email,
+      password,
+      role: role || 'faculty',
+    });
+    setToken(res.access_token);
+    // After registration, fetch the full session using the new token
+    const me = await api.get<Session>('/auth/me');
+    setSession(me);
+    return me;
+  }, []);
+
   const loginAs = useCallback(
     (role: Role) => authenticate(ROLE_SAMPLE[role], DEMO_PASSWORD),
     [authenticate],
@@ -104,8 +119,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const value = useMemo<AuthCtx>(
-    () => ({ session, loading, login: authenticate, loginAs, logout }),
-    [session, loading, authenticate, loginAs, logout],
+    () => ({ session, loading, login: authenticate, register: registerUser, loginAs, logout }),
+    [session, loading, authenticate, registerUser, loginAs, logout],
   );
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

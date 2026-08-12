@@ -11,23 +11,27 @@ import { useAuth } from '@/context/AuthContext';
 import { ROLE_META } from '@/data/roles';
 import type { Role } from '@/types';
 
-export function Login() {
-  const { login } = useAuth();
+const REGISTER_ROLES: Role[] = ['qbm', 'hod', 'faculty', 'sme', 'student'];
+
+export function Register() {
+  const { register } = useAuth();
   const navigate = useNavigate();
-  const [identifier, setIdentifier] = useState('');
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [role, setRole] = useState<Role>('faculty');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
 
-  const go = async (attempt: Promise<{ role: Role; name: string }>) => {
+  const go = async (attempt: Promise<any>) => {
     setBusy(true);
     setError('');
     try {
       const session = await attempt;
-      toast.success(`Signed in as ${session.name}`);
-      navigate(ROLE_META[session.role].home);
+      toast.success(`Account created! Welcome, ${session.name}`);
+      navigate(ROLE_META[session.role as Role].home);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not sign in.');
+      setError(err instanceof Error ? err.message : 'Could not register.');
     } finally {
       setBusy(false);
     }
@@ -36,9 +40,10 @@ export function Login() {
   const onSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    if (!identifier.trim()) return setError('Enter your institutional email or student ID.');
-    if (!password) return setError('Enter your password.');
-    void go(login(identifier, password));
+    if (!name.trim()) return setError('Enter your full name.');
+    if (!email.trim()) return setError('Enter your institutional email.');
+    if (!password) return setError('Enter a password.');
+    void go(register(name, email, password, role));
   };
 
   return (
@@ -54,7 +59,7 @@ export function Login() {
           initial={{ opacity: 0, y: 15 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-          className="w-full max-w-sm"
+          className="w-full max-w-md"
         >
           <div className="mb-12 flex justify-center">
             <Brand className="scale-125" />
@@ -62,53 +67,84 @@ export function Login() {
           
           <div className="mb-8 text-center">
             <h1 className="font-display text-4xl font-semibold tracking-tight">
-              Sign in
+              Create account
             </h1>
             <p className="mt-3 text-muted-foreground">
-              Enter your SIUT credentials to access your workspace.
+              Register for your SIUT workspace.
             </p>
           </div>
 
           <form onSubmit={onSubmit} className="space-y-6">
             <div className="space-y-2">
-              <Label htmlFor="identifier" className="text-muted-foreground">Institutional ID</Label>
+              <Label htmlFor="name" className="text-muted-foreground">Full Name</Label>
               <Input
-                id="identifier"
-                placeholder="name@siut.edu.pk"
-                value={identifier}
-                onChange={(e) => setIdentifier(e.target.value)}
-                autoComplete="username"
+                id="name"
+                placeholder="Dr. John Doe"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                autoComplete="name"
                 aria-invalid={!!error}
               />
             </div>
+            
             <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <Label htmlFor="password" className="text-muted-foreground">Password</Label>
-              </div>
+              <Label htmlFor="email" className="text-muted-foreground">Institutional ID</Label>
+              <Input
+                id="email"
+                placeholder="name@siut.edu.pk"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                autoComplete="email"
+                aria-invalid={!!error}
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="password" className="text-muted-foreground">Password</Label>
               <Input
                 id="password"
                 type="password"
                 placeholder="••••••••"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                autoComplete="current-password"
+                autoComplete="new-password"
                 className="font-mono"
               />
+            </div>
+
+            <div className="space-y-3 pt-2">
+              <Label className="text-muted-foreground">Workspace Role</Label>
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                {REGISTER_ROLES.map((r) => (
+                  <button
+                    key={r}
+                    type="button"
+                    onClick={() => setRole(r)}
+                    className={`flex items-center justify-center rounded-md border p-2 text-xs font-medium transition-colors ${
+                      role === r 
+                        ? 'border-primary bg-primary/10 text-primary' 
+                        : 'border-border text-muted-foreground hover:bg-accent'
+                    }`}
+                  >
+                    {ROLE_META[r].short}
+                  </button>
+                ))}
+              </div>
             </div>
             
             {error && <p className="text-sm text-critical font-medium">{error}</p>}
             
             <div className="pt-4">
               <Button type="submit" className="w-full" size="lg" disabled={busy}>
-                Access workspace <ArrowRight className="size-4 ml-2" />
+                Create account <ArrowRight className="size-4 ml-2" />
               </Button>
             </div>
           </form>
 
           <p className="mt-8 text-center text-sm text-muted-foreground">
-            Don't have an account?{' '}
-            <Link to="/register" className="text-foreground hover:underline underline-offset-4">
-              Register
+            Already have an account?{' '}
+            <Link to="/login" className="text-foreground hover:underline underline-offset-4">
+              Sign in
             </Link>
           </p>
 

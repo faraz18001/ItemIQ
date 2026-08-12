@@ -11,6 +11,7 @@ import { Home } from '@/pages/public/Home';
 import { Features } from '@/pages/public/Features';
 import { About } from '@/pages/public/About';
 import { Login } from '@/pages/public/Login';
+import { Register } from '@/pages/public/Register';
 import { ForgotPassword } from '@/pages/public/ForgotPassword';
 import { ResetPassword } from '@/pages/public/ResetPassword';
 import { VerifyEmail } from '@/pages/public/VerifyEmail';
@@ -52,6 +53,7 @@ export function App() {
         <Route path="/about" element={<About />} />
       </Route>
       <Route path="/login" element={<Login />} />
+      <Route path="/register" element={<Register />} />
       {/* Reached from an emailed link, so unauthenticated by definition. */}
       <Route path="/forgot-password" element={<ForgotPassword />} />
       <Route path="/reset-password" element={<ResetPassword />} />

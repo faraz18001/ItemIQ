@@ -84,12 +84,12 @@ export function App() {
 
                 <Route path="review" element={<ReviewQueue stage="departmental" />} />
 
-                <Route path="manage" element={<Requests />} />
-                <Route path="manage/review" element={<ReviewQueue stage="med_edu" />} />
-                {/* QBM runs the staff directory; admin grants and revokes the
+                <Route path="manage" element={<RoleRoute roles={['qbm']}><Requests /></RoleRoute>} />
+                <Route path="manage/review" element={<RoleRoute roles={['qbm']}><ReviewQueue stage="med_edu" /></RoleRoute>} />
+                {/* HOD runs the staff directory; admin grants and revokes the
                     operational role. Both need the screen, and the controls
                     inside it differ by what the viewer holds. */}
-                <Route path="users" element={<RoleRoute roles={['qbm', 'admin']}><Users /></RoleRoute>} />
+                <Route path="users" element={<RoleRoute roles={['hod', 'admin']}><Users /></RoleRoute>} />
                 {/* Operational, not academic: the report names tables, row ids
                     and which configuration is set, so it hangs off `admin`
                     rather than being bundled into an examinations role. */}
@@ -98,10 +98,10 @@ export function App() {
                 {/* Nav-gated for everyone else, but the API's visible_to() already
                     permits qbm/hod to see any faculty's authored work, so the route
                     itself is guarded rather than relying on nav visibility alone. */}
-                <Route path="department" element={<RoleRoute roles={['hod', 'qbm']}><Department /></RoleRoute>} />
-                <Route path="department/:facultyId" element={<RoleRoute roles={['hod', 'qbm']}><FacultyDetail /></RoleRoute>} />
-                <Route path="examiner" element={<PaperBuilder />} />
-                <Route path="examiner/new" element={<RoleRoute roles={['examiner', 'qbm']}><NewAdmissionTest /></RoleRoute>} />
+                <Route path="department" element={<RoleRoute roles={['hod']}><Department /></RoleRoute>} />
+                <Route path="department/:facultyId" element={<RoleRoute roles={['hod']}><FacultyDetail /></RoleRoute>} />
+                <Route path="examiner" element={<RoleRoute roles={['qbm', 'examiner']}><PaperBuilder /></RoleRoute>} />
+                <Route path="examiner/new" element={<RoleRoute roles={['qbm', 'examiner']}><NewAdmissionTest /></RoleRoute>} />
                 <Route path="examiner/papers/:paperId" element={<PaperDetail />} />
 
                 <Route path="bank" element={<Bank />} />

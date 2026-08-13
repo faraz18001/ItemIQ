@@ -94,18 +94,16 @@ export function navForRole(role: Role): NavItem[] {
     case 'qbm':
       return [
         { to: '/app/manage', label: 'Requests', icon: 'clipboard', end: true },
+        { to: '/app/examiner', label: 'Paper Generation', icon: 'file' },
         { to: '/app/manage/review', label: 'Final Review', icon: 'award' },
-        { to: '/app/department', label: 'Department', icon: 'users' },
         { to: '/app/bank', label: 'Question Bank', icon: 'layers' },
         { to: '/app/analytics', label: 'Item Analytics', icon: 'chart' },
-        { to: '/app/users', label: 'Accounts', icon: 'users' },
       ];
     case 'hod':
       return [
-        { to: '/app/department', label: 'Department', icon: 'users' },
-        { to: '/app/manage', label: 'Requests', icon: 'clipboard' },
+        { to: '/app/department', label: 'Department Overview', icon: 'activity' },
+        { to: '/app/users', label: 'Accounts & Roles', icon: 'users' },
         { to: '/app/bank', label: 'Question Bank', icon: 'layers' },
-        { to: '/app/analytics', label: 'Item Analytics', icon: 'chart' },
       ];
     case 'examiner':
       // Examiner is handled outside this system; show minimal nav if someone

@@ -1,10 +1,10 @@
 import { useState } from 'react';
-import { ClipboardList, Plus } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { ClipboardList, Plus, FileText } from 'lucide-react';
 import { toast } from 'sonner';
 import { PageHeader } from '@/components/common/PageHeader';
 import { RequestStatusBadge, DifficultyBadge } from '@/components/common/Badges';
 import { StatTile } from '@/components/common/StatTile';
-import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -20,6 +20,7 @@ import type { Difficulty } from '@/types';
 
 export function Requests() {
   const { requests, userById } = useData();
+  const navigate = useNavigate();
   const active = requests.filter((r) => r.status !== 'Completed').length;
   const totalNeeded = requests.reduce((s, r) => s + r.qCount, 0);
   const submitted = requests.reduce((s, r) => s + r.submitted, 0);
@@ -27,6 +28,9 @@ export function Requests() {
   return (
     <div className="space-y-6">
       <PageHeader help="requests" title="Question requests" description="Generate and track requests that kick off the authoring workflow.">
+        <Button variant="outline" onClick={() => navigate('/app/examiner')}>
+          <FileText className="size-4" /> Generate paper
+        </Button>
         <GenerateRequestDialog />
       </PageHeader>
 
@@ -36,42 +40,42 @@ export function Requests() {
         <StatTile label="Submitted so far" value={`${submitted}/${totalNeeded}`} accent="var(--series-2)" />
       </div>
 
-      <Card className="gap-0 overflow-hidden p-0">
+      <div className="border-y border-border">
         <Table>
           <TableHeader>
-            <TableRow className="hover:bg-transparent">
-              <TableHead>Scope</TableHead>
-              <TableHead>Type</TableHead>
-              <TableHead>Difficulty</TableHead>
-              <TableHead>Assigned to</TableHead>
-              <TableHead>Progress</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Created</TableHead>
+            <TableRow className="hover:bg-transparent border-b-2 border-border">
+              <TableHead className="font-semibold text-foreground">Scope</TableHead>
+              <TableHead className="font-semibold text-foreground">Type</TableHead>
+              <TableHead className="font-semibold text-foreground">Difficulty</TableHead>
+              <TableHead className="font-semibold text-foreground">Assigned to</TableHead>
+              <TableHead className="font-semibold text-foreground">Progress</TableHead>
+              <TableHead className="font-semibold text-foreground">Status</TableHead>
+              <TableHead className="font-semibold text-foreground">Created</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {requests.map((r) => (
-              <TableRow key={r.id}>
+              <TableRow key={r.id} className="border-border">
                 <TableCell>
-                  <p className="text-sm font-medium">{r.subtopicName}</p>
-                  <p className="text-xs text-muted-foreground">{r.subjectName} · {r.topicName}</p>
+                  <p className="text-base font-semibold">{r.subtopicName}</p>
+                  <p className="text-xs text-muted-foreground uppercase tracking-widest mt-0.5">{r.subjectName} · {r.topicName}</p>
                 </TableCell>
-                <TableCell className="text-sm">{r.qType}</TableCell>
+                <TableCell className="text-sm font-medium">{r.qType}</TableCell>
                 <TableCell><DifficultyBadge level={r.difficulty} /></TableCell>
-                <TableCell className="text-sm">{r.assignedTo ? userById(r.assignedTo)?.name : <span className="text-muted-foreground">Unassigned</span>}</TableCell>
-                <TableCell className="w-40">
-                  <div className="flex items-center gap-2">
-                    <Progress value={(r.submitted / r.qCount) * 100} className="w-24" />
-                    <span className="text-xs tabular-nums text-muted-foreground">{r.submitted}/{r.qCount}</span>
+                <TableCell className="text-sm font-medium">{r.assignedTo ? userById(r.assignedTo)?.name : <span className="text-muted-foreground font-normal">Unassigned</span>}</TableCell>
+                <TableCell className="w-48">
+                  <div className="flex items-center gap-3">
+                    <Progress value={(r.submitted / r.qCount) * 100} className="w-24 h-2" />
+                    <span className="text-xs font-bold tabular-nums text-foreground">{r.submitted} / {r.qCount}</span>
                   </div>
                 </TableCell>
                 <TableCell><RequestStatusBadge status={r.status} /></TableCell>
-                <TableCell className="text-xs text-muted-foreground">{formatDate(r.createdAt)}</TableCell>
+                <TableCell className="text-xs font-medium text-muted-foreground">{formatDate(r.createdAt)}</TableCell>
               </TableRow>
             ))}
           </TableBody>
         </Table>
-      </Card>
+      </div>
     </div>
   );
 }

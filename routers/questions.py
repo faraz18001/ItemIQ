@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from typing import List
-from database import get_db, QuestionRequest, PdfSubmission, SubmissionReviewLog, Question, QuestionOption
+from database import get_db, QuestionRequest, PdfSubmission, SubmissionReviewLog, Question, QuestionOption, User
 from schemas import (
     QuestionRequestCreate, QuestionRequestResponse, 
     PdfSubmissionCreate, PdfSubmissionResponse, 
@@ -108,6 +108,28 @@ def review_submission(id: int, review: SubmissionReviewLogCreate, db: Session = 
 # --- 4. Live Question Bank (For filtering & Worksheet generation) ---
 @router.get("/bank", response_model=List[QuestionResponse])
 def get_live_bank(db: Session = Depends(get_db)):
-    # Returns only LIVE questions (extracted and approved)
     return db.query(Question).filter(Question.status == "LIVE").all()
 
+@router.get("")
+def get_all_questions(db: Session = Depends(get_db)):
+    qs = db.query(Question).all()
+    faculty = db.query(User).filter(User.role == "faculty").first()
+    faculty_id = str(faculty.id) if faculty else "1"
+    
+    out = []
+    for q in qs:
+        out.append({
+            "id": str(q.id),
+            "publicId": f"Q-{q.id}",
+            "authorId": faculty_id,
+            "subtopicId": str(q.subtopic_id),
+            "stem": q.stem,
+            "status": q.status,
+            "subjectName": "Renal Physiology",
+            "subtopicName": "GFR Regulation",
+            "facultyDifficulty": "Medium",
+            "difficultyTag": "Medium",
+            "reviews": [],
+            "updatedAt": q.created_at.isoformat() if q.created_at else ""
+        })
+    return out

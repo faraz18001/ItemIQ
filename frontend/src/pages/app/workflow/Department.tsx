@@ -5,7 +5,6 @@ import { FileText, Users } from 'lucide-react';
 import { PageHeader } from '@/components/common/PageHeader';
 import { RequestStatusBadge, DifficultyBadge } from '@/components/common/Badges';
 import { StatTile } from '@/components/common/StatTile';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -44,71 +43,71 @@ export function Department() {
         <StatTile label="Pending questions" value={questions.filter((q) => ['submitted', 'under_departmental_review', 'correction_required', 'under_med_edu_review'].includes(q.status)).length} accent="var(--series-8)" />
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-2">
+      <div className="grid gap-8 lg:grid-cols-2 pt-6 border-t border-border">
         {facultyStats.map(({ f, authored, inBank, pending, assigned }) => (
-          <Link key={f.id} to={`/app/department/${f.id}`} className="block">
-            <Card className="transition-colors hover:bg-muted/40">
-              <CardContent className="flex items-center gap-4 p-4">
-                <Avatar className="size-11">
-                  <AvatarFallback style={{ background: 'color-mix(in oklab, var(--series-2), transparent 82%)', color: 'var(--series-2)' }}>
-                    {initials(f.name)}
-                  </AvatarFallback>
-                </Avatar>
-                <div className="min-w-0 flex-1">
-                  <p className="truncate font-medium">{f.name}</p>
-                  <p className="text-xs text-muted-foreground">{f.department} · {assigned} assigned</p>
-                  <div className="mt-2 flex gap-4 text-xs">
-                    <span><span className="font-semibold text-foreground">{authored}</span> authored</span>
-                    <span><span className="font-semibold text-success">{inBank}</span> in bank</span>
-                    <span><span className="font-semibold text-warning">{pending}</span> pending</span>
-                  </div>
+          <Link key={f.id} to={`/app/department/${f.id}`} className="block group">
+            <div className="flex items-center gap-4 py-4 border-b border-border transition-colors group-hover:border-foreground">
+              <Avatar className="size-12 rounded-none">
+                <AvatarFallback className="rounded-none font-bold text-lg" style={{ background: 'color-mix(in oklab, var(--series-2), transparent 82%)', color: 'var(--series-2)' }}>
+                  {initials(f.name)}
+                </AvatarFallback>
+              </Avatar>
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-xl font-semibold tracking-tight">{f.name}</p>
+                <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mt-1">{f.department} · {assigned} assigned</p>
+                <div className="mt-3 flex gap-4 text-xs font-medium">
+                  <span><span className="font-bold text-foreground text-sm">{authored}</span> authored</span>
+                  <span><span className="font-bold text-success text-sm">{inBank}</span> in bank</span>
+                  <span><span className="font-bold text-warning text-sm">{pending}</span> pending</span>
                 </div>
-              </CardContent>
-            </Card>
+              </div>
+            </div>
           </Link>
         ))}
       </div>
 
-      <Card className="gap-0 overflow-hidden p-0">
-        <CardHeader><CardTitle>Requests</CardTitle></CardHeader>
-        <Table>
-          <TableHeader>
-            <TableRow className="hover:bg-transparent">
-              <TableHead>Scope</TableHead>
-              <TableHead>Difficulty</TableHead>
-              <TableHead>Progress</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Assign</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {requests.map((r) => (
-              <TableRow key={r.id}>
-                <TableCell>
-                  <p className="text-sm font-medium">{r.subtopicName}</p>
-                  <p className="text-xs text-muted-foreground">{r.subjectName}</p>
-                </TableCell>
-                <TableCell><DifficultyBadge level={r.difficulty} /></TableCell>
-                <TableCell className="w-36">
-                  <div className="flex items-center gap-2">
-                    <Progress value={(r.submitted / r.qCount) * 100} className="w-20" />
-                    <span className="text-xs tabular-nums text-muted-foreground">{r.submitted}/{r.qCount}</span>
-                  </div>
-                </TableCell>
-                <TableCell><RequestStatusBadge status={r.status} /></TableCell>
-                <TableCell>
-                  <Select value={r.assignedTo ?? ''} onValueChange={(v) => void assign(r.id, v)}>
-                    <SelectTrigger size="sm" className="w-40"><SelectValue placeholder="Assign faculty" /></SelectTrigger>
-                    <SelectContent>
-                      {faculty.map((f) => <SelectItem key={f.id} value={f.id}>{f.name}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                </TableCell>
+      <div className="pt-8">
+        <h2 className="text-2xl font-bold tracking-tight mb-6">Recent requests</h2>
+        <div className="border-y border-border">
+          <Table>
+            <TableHeader>
+              <TableRow className="hover:bg-transparent border-b-2 border-border">
+                <TableHead className="font-semibold text-foreground">Scope</TableHead>
+                <TableHead className="font-semibold text-foreground">Difficulty</TableHead>
+                <TableHead className="font-semibold text-foreground">Progress</TableHead>
+                <TableHead className="font-semibold text-foreground">Status</TableHead>
+                <TableHead className="font-semibold text-foreground">Assign</TableHead>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </Card>
+            </TableHeader>
+            <TableBody>
+              {requests.map((r) => (
+                <TableRow key={r.id} className="border-border">
+                  <TableCell>
+                    <p className="text-base font-semibold">{r.subtopicName}</p>
+                    <p className="text-xs text-muted-foreground uppercase tracking-widest mt-0.5">{r.subjectName}</p>
+                  </TableCell>
+                  <TableCell><DifficultyBadge level={r.difficulty} /></TableCell>
+                  <TableCell className="w-48">
+                    <div className="flex items-center gap-3">
+                      <Progress value={(r.submitted / r.qCount) * 100} className="w-24 h-2" />
+                      <span className="text-xs font-bold tabular-nums text-foreground">{r.submitted} / {r.qCount}</span>
+                    </div>
+                  </TableCell>
+                  <TableCell><RequestStatusBadge status={r.status} /></TableCell>
+                  <TableCell>
+                    <Select value={r.assignedTo ?? ''} onValueChange={(v) => void assign(r.id, v)}>
+                      <SelectTrigger size="sm" className="w-40 border-border"><SelectValue placeholder="Assign faculty" /></SelectTrigger>
+                      <SelectContent>
+                        {faculty.map((f) => <SelectItem key={f.id} value={f.id}>{f.name}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      </div>
     </div>
   );
 }

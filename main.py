@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from database import engine, Base
-from routers import auth, users, taxonomy, questions, exams
+from routers import auth, users, taxonomy, questions, exams, requests, misc
 import engine as ai_engine
 
 # Create tables
@@ -13,6 +13,8 @@ app.include_router(users.router, prefix="/api")
 app.include_router(taxonomy.router, prefix="/api")
 app.include_router(questions.router, prefix="/api")
 app.include_router(exams.router, prefix="/api")
+app.include_router(requests.router, prefix="/api")
+app.include_router(misc.router, prefix="/api")
 app.include_router(ai_engine.router, prefix="/api")
 
 @app.get("/api/health")

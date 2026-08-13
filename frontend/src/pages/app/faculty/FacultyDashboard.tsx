@@ -5,7 +5,6 @@ import { PageHeader } from '@/components/common/PageHeader';
 import { StatTile } from '@/components/common/StatTile';
 import { StatusBadge, DifficultyBadge, RequestStatusBadge } from '@/components/common/Badges';
 import { EmptyState } from '@/components/common/EmptyState';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { useAuth } from '@/context/AuthContext';
@@ -37,65 +36,75 @@ export function FacultyDashboard() {
       </div>
 
       {corrections.length > 0 && (
-        <Card className="border-serious/40 bg-serious/5">
-          <CardHeader><CardTitle className="flex items-center gap-2 text-serious"><PencilLine className="size-4" /> Corrections requested</CardTitle></CardHeader>
-          <CardContent className="space-y-2">
+        <section className="border-t-4 border-serious pt-6 pb-2">
+          <h2 className="flex items-center gap-2 text-2xl font-bold tracking-tight text-serious mb-4">
+            <PencilLine className="size-5" /> Corrections requested
+          </h2>
+          <div className="space-y-0 divide-y divide-border border-b border-border">
             {corrections.map((q) => (
-              <div key={q.id} className="flex items-center gap-3 rounded-lg border border-border bg-card p-3">
+              <div key={q.id} className="flex flex-col sm:flex-row sm:items-center gap-4 py-4">
                 <div className="min-w-0 flex-1">
-                  <p className="line-clamp-1 text-sm font-medium">{q.stem}</p>
-                  <p className="line-clamp-1 text-xs text-muted-foreground">{q.reviews.at(-1)?.remarks ?? q.reviewRemark}</p>
+                  <p className="line-clamp-2 text-base font-medium">{q.stem}</p>
+                  <p className="mt-1 line-clamp-2 text-sm text-serious font-medium">
+                    {q.reviews.at(-1)?.remarks ?? q.reviewRemark}
+                  </p>
                 </div>
-                <Button asChild size="sm" variant="outline"><Link to={`/app/faculty/edit/${q.id}`}>Revise</Link></Button>
+                <Button asChild size="sm" variant="outline" className="shrink-0 border-serious text-serious hover:bg-serious hover:text-serious-foreground">
+                  <Link to={`/app/faculty/edit/${q.id}`}>Revise Question</Link>
+                </Button>
               </div>
             ))}
-          </CardContent>
-        </Card>
+          </div>
+        </section>
       )}
 
-      <div className="grid gap-4 lg:grid-cols-2">
-        <Card>
-          <CardHeader><CardTitle>Assigned requests</CardTitle></CardHeader>
-          <CardContent className="space-y-3">
+      <div className="grid gap-12 lg:grid-cols-2">
+        <section className="pt-8 border-t border-border mt-8">
+          <h2 className="text-2xl font-bold tracking-tight mb-6">Assigned requests</h2>
+          <div className="space-y-0 divide-y divide-border border-y border-border">
             {myRequests.length === 0 ? (
-              <EmptyState icon={Inbox} title="No assignments" description="New requests from your HOD will appear here." className="py-8" />
+              <EmptyState icon={Inbox} title="No assignments" description="New requests from your HOD will appear here." className="py-12 border-0" />
             ) : (
               myRequests.map((r) => (
-                <div key={r.id} className="rounded-lg border border-border p-3">
-                  <div className="flex items-center justify-between">
-                    <p className="text-sm font-medium">{r.subtopicName}</p>
+                <div key={r.id} className="py-4">
+                  <div className="flex items-center justify-between mb-1">
+                    <p className="text-base font-semibold">{r.subtopicName}</p>
                     <RequestStatusBadge status={r.status} />
                   </div>
-                  <p className="text-xs text-muted-foreground">{r.subjectName} · {r.topicName}</p>
-                  <div className="mt-2 flex items-center gap-2">
-                    <Progress value={(r.submitted / r.qCount) * 100} className="flex-1" />
-                    <span className="text-xs tabular-nums text-muted-foreground">{r.submitted}/{r.qCount}</span>
+                  <p className="text-sm text-muted-foreground font-medium uppercase tracking-wider">{r.subjectName} · {r.topicName}</p>
+                  <div className="mt-4 flex items-center gap-3">
+                    <Progress value={(r.submitted / r.qCount) * 100} className="flex-1 h-2" />
+                    <span className="text-xs font-bold tabular-nums text-foreground">{r.submitted} / {r.qCount} submitted</span>
                   </div>
                 </div>
               ))
             )}
-          </CardContent>
-        </Card>
+          </div>
+        </section>
 
-        <Card>
-          <CardHeader><CardTitle>My questions</CardTitle></CardHeader>
-          <CardContent className="space-y-2">
+        <section className="pt-8 border-t border-border mt-8">
+          <h2 className="text-2xl font-bold tracking-tight mb-6">My questions</h2>
+          <div className="space-y-0 divide-y divide-border border-y border-border">
             {mine.length === 0 ? (
-              <EmptyState icon={FileText} title="Nothing authored yet" className="py-8" />
+              <EmptyState icon={FileText} title="Nothing authored yet" className="py-12 border-0" />
             ) : (
-              mine.slice(0, 6).map((q) => (
-                <div key={q.id} className="flex items-center gap-2 rounded-lg border border-border p-3">
+              mine.slice(0, 8).map((q) => (
+                <div key={q.id} className="flex items-start sm:items-center justify-between gap-4 py-4">
                   <div className="min-w-0 flex-1">
-                    <p className="line-clamp-1 text-sm">{q.stem}</p>
-                    <p className="text-xs text-muted-foreground">{timeAgo(q.updatedAt)}</p>
+                    <p className="line-clamp-1 text-base font-medium">{q.stem}</p>
+                    <div className="flex items-center gap-2 mt-2">
+                      <DifficultyBadge level={q.difficultyTag} />
+                      <span className="text-xs text-muted-foreground font-medium">{timeAgo(q.updatedAt)}</span>
+                    </div>
                   </div>
-                  <DifficultyBadge level={q.difficultyTag} />
-                  <StatusBadge status={q.status} />
+                  <div className="shrink-0">
+                    <StatusBadge status={q.status} />
+                  </div>
                 </div>
               ))
             )}
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       </div>
     </div>
   );

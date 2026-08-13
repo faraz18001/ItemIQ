@@ -1,5 +1,4 @@
 import type { LucideIcon } from 'lucide-react';
-import { Card } from '@/components/ui/card';
 import { HelpHint } from '@/components/common/HelpHint';
 import type { HelpId } from '@/data/help';
 import { cn } from '@/lib/utils';
@@ -19,23 +18,23 @@ interface StatTileProps {
 
 export function StatTile({ label, value, icon: Icon, hint, help, trend, accent, className }: StatTileProps) {
   return (
-    <Card className={cn('gap-0 p-4', className)}>
+    <div className={cn('border-t-2 border-border pt-4 pb-2', className)}>
       <div className="flex items-start justify-between">
-        <p className="flex items-center gap-1.5 text-sm font-medium text-muted-foreground">
+        <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
           {label}
           {help && <HelpHint id={help} />}
         </p>
         {Icon && (
           <span
-            className="grid size-8 place-items-center rounded-lg"
-            style={{ background: accent ? `color-mix(in oklab, ${accent}, transparent 88%)` : 'var(--muted)', color: accent ?? 'var(--muted-foreground)' }}
+            className="grid size-6 place-items-center rounded-none"
+            style={{ color: accent ?? 'var(--muted-foreground)' }}
           >
             <Icon className="size-4" />
           </span>
         )}
       </div>
-      <div className="mt-2 flex items-end gap-2">
-        <span className="text-2xl font-semibold tracking-tight tabular-nums">{value}</span>
+      <div className="mt-3 flex items-end gap-2">
+        <span className="text-4xl font-semibold tracking-tight tabular-nums text-foreground">{value}</span>
         {trend && (
           <span className={cn('mb-1 text-xs font-medium', trend.positive ? 'text-success' : 'text-critical')}>
             {trend.value}
@@ -43,6 +42,6 @@ export function StatTile({ label, value, icon: Icon, hint, help, trend, accent, 
         )}
       </div>
       {hint && <p className="mt-1 text-xs text-muted-foreground">{hint}</p>}
-    </Card>
+    </div>
   );
 }

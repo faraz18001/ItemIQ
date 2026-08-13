@@ -36,34 +36,32 @@ export function ReviewQueue({ stage }: { stage: 'departmental' | 'med_edu' }) {
       </PageHeader>
 
       {queue.length === 0 ? (
-        <EmptyState icon={ClipboardCheck} title="Queue is clear" description="There are no questions waiting on you right now." />
+        <EmptyState icon={ClipboardCheck} title="Queue is clear" description="There are no questions waiting on you right now." className="py-16" />
       ) : (
-        <div className="space-y-3">
+        <div className="space-y-0 divide-y divide-border border-y border-border">
           {queue.map((q) => (
-            <Card key={q.id}>
-              <CardContent className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center">
-                <div className="min-w-0 flex-1 space-y-1.5">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <Badge variant="outline" className="font-mono">{q.publicId}</Badge>
-                    <StatusBadge status={q.status} />
-                    <DifficultyBadge level={q.facultyDifficulty} />
-                    <span className="text-xs text-muted-foreground">
-                      by {userById(q.authorId)?.name} · {timeAgo(q.updatedAt)}
-                    </span>
-                  </div>
-                  <p className="line-clamp-2 text-sm">{q.stem}</p>
-                  <p className="text-xs text-muted-foreground">{q.subjectName} · {q.subtopicName}</p>
+            <div key={q.id} className="flex flex-col gap-4 py-5 sm:flex-row sm:items-center">
+              <div className="min-w-0 flex-1 space-y-2">
+                <div className="flex flex-wrap items-center gap-3">
+                  <span className="font-mono text-sm font-semibold text-muted-foreground">{q.publicId}</span>
+                  <StatusBadge status={q.status} />
+                  <DifficultyBadge level={q.facultyDifficulty} />
+                  <span className="text-xs font-medium text-muted-foreground">
+                    by {userById(q.authorId)?.name} · {timeAgo(q.updatedAt)}
+                  </span>
                 </div>
-                <div className="flex shrink-0 gap-2">
-                  <Button variant="outline" size="sm" onClick={() => setPreview(q)}>
-                    <Eye className="size-4" /> View
-                  </Button>
-                  <Button size="sm" onClick={() => setReview(q)}>
-                    <Gavel className="size-4" /> Review
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
+                <p className="line-clamp-2 text-base font-medium">{q.stem}</p>
+                <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">{q.subjectName} · {q.subtopicName}</p>
+              </div>
+              <div className="flex shrink-0 gap-3">
+                <Button variant="outline" size="sm" onClick={() => setPreview(q)} className="border-border">
+                  <Eye className="size-4" /> View
+                </Button>
+                <Button size="sm" onClick={() => setReview(q)}>
+                  <Gavel className="size-4" /> Review
+                </Button>
+              </div>
+            </div>
           ))}
         </div>
       )}

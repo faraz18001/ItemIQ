@@ -104,7 +104,7 @@ export function FacultyDashboard() {
               ))
             )}
           </div>
-        </div>
+        </section>
       </div>
     </div>
   );

@@ -11,35 +11,6 @@ from security import get_current_user
 
 router = APIRouter(prefix="/questions", tags=["Questions & Workflows"])
 
-# --- 1. Question Requests (QBM) ---
-@router.post("/requests", response_model=QuestionRequestResponse)
-def create_request(req_in: QuestionRequestCreate, db: Session = Depends(get_db), current_user: dict = Depends(get_current_user)):
-    db_req = QuestionRequest(
-        topic_id=req_in.topic_id,
-        assigned_to=None, # HOD assigns this later
-        requested_by=current_user["id"]
-    )
-    db.add(db_req)
-    db.commit()
-    db.refresh(db_req)
-    return db_req
-
-@router.put("/requests/{id}/assign", response_model=QuestionRequestResponse)
-def assign_request(id: int, faculty_id: int, db: Session = Depends(get_db), current_user: dict = Depends(get_current_user)):
-    # HOD only
-    req = db.query(QuestionRequest).filter(QuestionRequest.id == id).first()
-    if not req:
-        raise HTTPException(status_code=404, detail="Request not found")
-    
-    req.assigned_to = faculty_id
-    db.commit()
-    db.refresh(req)
-    return req
-
-@router.get("/requests", response_model=List[QuestionRequestResponse])
-def get_requests(db: Session = Depends(get_db)):
-    return db.query(QuestionRequest).all()
-
 # --- 2. PDF Submissions (Faculty) ---
 @router.post("/submissions", response_model=PdfSubmissionResponse)
 def submit_pdf(sub_in: PdfSubmissionCreate, db: Session = Depends(get_db), current_user: dict = Depends(get_current_user)):

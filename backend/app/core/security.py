@@ -6,15 +6,14 @@ has a known incompatibility with recent bcrypt releases.
 
 from datetime import datetime, timedelta, timezone
 
-import bcrypt
-import jwt
-from fastapi import Depends, HTTPException, status
-from fastapi.security import OAuth2PasswordBearer
-from sqlalchemy.orm import Session
-
 from app.config import get_settings
 from app.database import get_db
 from app.models.user import User, role_names_for
+import bcrypt
+from fastapi import Depends, HTTPException, status
+from fastapi.security import OAuth2PasswordBearer
+import jwt
+from sqlalchemy.orm import Session
 
 settings = get_settings()
 
@@ -36,8 +35,7 @@ def create_access_token(user: User) -> str:
     payload = {
         "sub": str(user.id),
         "role": user.role,
-        "exp": datetime.now(timezone.utc)
-        + timedelta(minutes=settings.access_token_expire_minutes),
+        "exp": datetime.now(timezone.utc) + timedelta(minutes=settings.access_token_expire_minutes),
     }
     return jwt.encode(payload, settings.secret_key, algorithm=settings.algorithm)
 
@@ -55,7 +53,7 @@ def get_current_user(
         payload = jwt.decode(token, settings.secret_key, algorithms=[settings.algorithm])
         user_id = int(payload.get("sub", 0))
     except (jwt.PyJWTError, TypeError, ValueError):
-        raise credentials_exception
+        raise credentials_exception from None
 
     user = db.get(User, user_id)
     if user is None or not user.is_active:

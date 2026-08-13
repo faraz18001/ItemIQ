@@ -6,9 +6,6 @@ a list of checks, a tally per status, and an overall ``healthy`` flag.
 
 from pathlib import Path
 
-from sqlalchemy import func
-from sqlalchemy.orm import Session
-
 from app.config import get_settings
 from app.models import (
     ExamPaper,
@@ -17,6 +14,8 @@ from app.models import (
     QuestionRequest,
     User,
 )
+from sqlalchemy import func
+from sqlalchemy.orm import Session
 
 settings = get_settings()
 
@@ -152,9 +151,12 @@ def _config_check() -> dict:
         "status": "warn" if insecure else "ok",
         "summary": (
             "Using the built-in development key. Set SECRET_KEY in .env before deploying."
-            if insecure else "SECRET_KEY is set from the environment."
+            if insecure
+            else "SECRET_KEY is set from the environment."
         ),
-        "remedy": "Generate a key with `python -c \"import secrets; print(secrets.token_hex(32))\"` and put it in .env.",
+        "remedy": (
+            'Generate a key with `python -c "import secrets; print(secrets.token_hex(32))"` and put it in .env.'
+        ),
         "samples": [],
         "count": 0,
     }

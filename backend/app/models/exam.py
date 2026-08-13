@@ -1,3 +1,8 @@
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
+from app.database import Base, _utcnow
 from sqlalchemy import (
     JSON,
     Boolean,
@@ -7,11 +12,11 @@ from sqlalchemy import (
     ForeignKey,
     Integer,
     String,
-    Text,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from app.database import Base, _utcnow
+if TYPE_CHECKING:
+    from app.models.question import Question
 
 
 class ExamPaper(Base):
@@ -31,8 +36,9 @@ class ExamPaper(Base):
     created_at = mapped_column(DateTime, default=_utcnow)
     updated_at = mapped_column(DateTime, default=_utcnow, onupdate=_utcnow)
 
-    questions: Mapped[list["ExamPaperQuestion"]] = relationship(
-        "ExamPaperQuestion", cascade="all, delete-orphan",
+    questions: Mapped[list[ExamPaperQuestion]] = relationship(
+        "ExamPaperQuestion",
+        cascade="all, delete-orphan",
         order_by="ExamPaperQuestion.position",
     )
 
@@ -53,7 +59,7 @@ class ExamPaperQuestion(Base):
     option_picks: Mapped[list | None] = mapped_column(JSON, nullable=True)
     calibrated_at = mapped_column(DateTime, nullable=True)
 
-    question: Mapped["Question"] = relationship("Question")  # noqa: F821
+    question: Mapped[Question] = relationship("Question")  # noqa: F821
 
 
 class StudentResponse(Base):
@@ -80,8 +86,10 @@ class TOS(Base):
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     created_at = mapped_column(DateTime, default=_utcnow)
 
-    entries: Mapped[list["TOSEntry"]] = relationship(
-        "TOSEntry", back_populates="tos", cascade="all, delete-orphan",
+    entries: Mapped[list[TOSEntry]] = relationship(
+        "TOSEntry",
+        back_populates="tos",
+        cascade="all, delete-orphan",
     )
 
 

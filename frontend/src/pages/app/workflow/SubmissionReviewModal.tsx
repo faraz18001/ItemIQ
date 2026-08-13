@@ -57,9 +57,10 @@ export function SubmissionReviewModal({ submission, stage, open, onOpenChange }:
           <div className="flex items-center gap-3 p-4 bg-muted rounded-md border border-border">
             <FileText className="size-8 text-serious" />
             <div>
-              <p className="font-semibold text-sm break-all">{submission.pdf_path ? submission.pdf_path.split('/').pop() : 'Unknown file'}</p>
-              <p className="text-xs text-muted-foreground">Uploaded at {new Date(submission.created_at).toLocaleString()}</p>
+              <p className="font-semibold text-sm break-all">{submission.pdfPath ? submission.pdfPath.split('/').pop() : 'Unknown file'}</p>
+              <p className="text-xs text-muted-foreground">Uploaded at {new Date(submission.createdAt).toLocaleString()}</p>
             </div>
+
           </div>
 
           <div className="space-y-2">

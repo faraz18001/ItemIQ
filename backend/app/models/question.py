@@ -1,3 +1,8 @@
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
+from app.database import Base, _utcnow
 from sqlalchemy import (
     JSON,
     Boolean,
@@ -10,7 +15,9 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from app.database import Base, _utcnow
+if TYPE_CHECKING:
+    from app.models.taxonomy import Description, Subtopic
+    from app.models.user import User
 
 
 class QuestionRequest(Base):
@@ -76,13 +83,21 @@ class Question(Base):
     created_at = mapped_column(DateTime, default=_utcnow)
     updated_at = mapped_column(DateTime, default=_utcnow, onupdate=_utcnow)
 
-    options: Mapped[list["QuestionOption"]] = relationship(
-        "QuestionOption", back_populates="question", cascade="all, delete-orphan",
+    options: Mapped[list[QuestionOption]] = relationship(
+        "QuestionOption",
+        back_populates="question",
+        cascade="all, delete-orphan",
         order_by="QuestionOption.position",
     )
-    reviews: Mapped[list["QuestionReview"]] = relationship(
-        "QuestionReview", back_populates="question", cascade="all, delete-orphan",
+    reviews: Mapped[list[QuestionReview]] = relationship(
+        "QuestionReview",
+        back_populates="question",
+        cascade="all, delete-orphan",
     )
+    subtopic: Mapped[Subtopic] = relationship("Subtopic")
+    description: Mapped[Description] = relationship("Description")
+    submission: Mapped[PdfSubmission] = relationship("PdfSubmission")
+    author: Mapped[User] = relationship("User")
 
 
 class QuestionOption(Base):

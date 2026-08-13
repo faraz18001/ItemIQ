@@ -7,10 +7,8 @@ and ``template`` produces a blank response sheet ready to be distributed.
 
 import io
 
-from docx import Document
-from docx.shared import Pt
-
 from app.models import ExamPaper
+from docx import Document
 
 
 def export_paper(paper: ExamPaper, variant: str) -> bytes:

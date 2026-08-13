@@ -1,11 +1,10 @@
-from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy.orm import Session
-
-from app.core.security import get_current_user, get_password_hash, has_role, require_roles
+from app.core.security import get_password_hash, has_role, require_roles
 from app.database import get_db
 from app.models import Role, User
 from app.schemas import GrantRoleRequest, ResetPasswordRequest, UserCreate, UserUpdate
 from app.services.serializers import serialize_user
+from fastapi import APIRouter, Depends, HTTPException, Query
+from sqlalchemy.orm import Session
 
 router = APIRouter(prefix="/users", tags=["Users"])
 

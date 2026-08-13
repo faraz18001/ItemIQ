@@ -1,7 +1,6 @@
+from app.database import Base, _utcnow
 from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-
-from app.database import Base, _utcnow
 
 
 class Role(Base):
@@ -38,7 +37,9 @@ class User(Base):
     updated_at = mapped_column(DateTime, default=_utcnow, onupdate=_utcnow)
 
     granted: Mapped[list[Role]] = relationship(
-        "Role", secondary="user_role", lazy="selectin",
+        "Role",
+        secondary="user_role",
+        lazy="selectin",
     )
 
 

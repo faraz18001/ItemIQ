@@ -4,12 +4,10 @@ These define what the API accepts; the serializers in
 ``app/services/serializers.py`` define what it returns.
 """
 
-from typing import Optional
-
 from pydantic import BaseModel, Field
 
-
 # ── auth / users ─────────────────────────────────────────────────────────────
+
 
 class LoginRequest(BaseModel):
     identifier: str
@@ -32,8 +30,8 @@ class UserCreate(BaseModel):
 
 
 class UserUpdate(BaseModel):
-    role: Optional[str] = None
-    isActive: Optional[bool] = None
+    role: str | None = None
+    isActive: bool | None = None
 
 
 class GrantRoleRequest(BaseModel):
@@ -58,7 +56,12 @@ class PasswordResetSubmit(BaseModel):
     newPassword: str = Field(min_length=8)
 
 
+class VerifyEmailRequest(BaseModel):
+    token: str
+
+
 # ── requests ─────────────────────────────────────────────────────────────────
+
 
 class RequestPayload(BaseModel):
     subtopicId: str
@@ -68,32 +71,33 @@ class RequestPayload(BaseModel):
 
 
 class AssignRequestPayload(BaseModel):
-    facultyId: Optional[str] = None
+    facultyId: str | None = None
 
 
 # ── questions ────────────────────────────────────────────────────────────────
 
+
 class QuestionCreate(BaseModel):
     subtopicId: str
-    descriptionId: Optional[str] = None
+    descriptionId: str | None = None
     stem: str
     options: list[str] = Field(min_length=2)
     correct: int
     facultyDifficulty: str = "Medium"
-    explanation: Optional[str] = None
-    reference: Optional[str] = None
+    explanation: str | None = None
+    reference: str | None = None
     submit: bool = False
 
 
 class QuestionUpdate(BaseModel):
-    subtopicId: Optional[str] = None
-    descriptionId: Optional[str] = None
-    stem: Optional[str] = None
-    options: Optional[list[str]] = None
-    correct: Optional[int] = None
-    facultyDifficulty: Optional[str] = None
-    explanation: Optional[str] = None
-    reference: Optional[str] = None
+    subtopicId: str | None = None
+    descriptionId: str | None = None
+    stem: str | None = None
+    options: list[str] | None = None
+    correct: int | None = None
+    facultyDifficulty: str | None = None
+    explanation: str | None = None
+    reference: str | None = None
 
 
 class ReviewDecision(BaseModel):
@@ -110,6 +114,7 @@ class SubmissionReview(BaseModel):
 
 # ── engagement ───────────────────────────────────────────────────────────────
 
+
 class AttemptIn(BaseModel):
     questionId: str
     selected: int
@@ -121,32 +126,33 @@ class BookmarkIn(BaseModel):
 
 # ── papers / tos ─────────────────────────────────────────────────────────────
 
+
 class TosEntryDraft(BaseModel):
-    topicId: Optional[str] = None
-    subtopicId: Optional[str] = None
-    qType: Optional[str] = "MCQ"
-    difficulty: Optional[str] = "Medium"
+    topicId: str | None = None
+    subtopicId: str | None = None
+    qType: str | None = "MCQ"
+    difficulty: str | None = "Medium"
     nRequired: int = 5
-    bloom: Optional[str] = None
+    bloom: str | None = None
 
 
 class TosCreate(BaseModel):
     title: str
-    programId: Optional[str] = None
-    examType: Optional[str] = None
-    academicYear: Optional[str] = None
+    programId: str | None = None
+    examType: str | None = None
+    academicYear: str | None = None
     entries: list[TosEntryDraft] = Field(default_factory=list)
 
 
 class PaperCreate(BaseModel):
     title: str
-    tosId: Optional[str] = None
+    tosId: str | None = None
     questionIds: list[str] = Field(default_factory=list)
-    batch: Optional[str] = None
-    academicYear: Optional[str] = None
-    programId: Optional[str] = None
-    examType: Optional[str] = None
-    examDate: Optional[str] = None
+    batch: str | None = None
+    academicYear: str | None = None
+    programId: str | None = None
+    examType: str | None = None
+    examDate: str | None = None
     allowRepeats: bool = False
 
 
@@ -156,12 +162,13 @@ class PaperStatusUpdate(BaseModel):
 
 # ── mock / ai ────────────────────────────────────────────────────────────────
 
+
 class MockStart(BaseModel):
     count: int = 5
-    subjectId: Optional[str] = None
-    topicId: Optional[str] = None
-    subtopicId: Optional[str] = None
-    difficulty: Optional[str] = None
+    subjectId: str | None = None
+    topicId: str | None = None
+    subtopicId: str | None = None
+    difficulty: str | None = None
 
 
 class MockSubmit(BaseModel):
@@ -169,8 +176,8 @@ class MockSubmit(BaseModel):
 
 
 class AiCritiqueTarget(BaseModel):
-    questionId: Optional[str] = None
-    stem: Optional[str] = None
+    questionId: str | None = None
+    stem: str | None = None
     options: list[str] = Field(default_factory=list)
-    correct: Optional[int] = None
-    explanation: Optional[str] = None
+    correct: int | None = None
+    explanation: str | None = None

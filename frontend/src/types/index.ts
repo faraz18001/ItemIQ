@@ -478,10 +478,11 @@ export interface SubmissionReviewLog {
 
 export interface PdfSubmission {
   id: string;
-  request_id: string | null;
-  faculty_id: string;
-  pdf_path: string;
+  requestId: string | null;
+  facultyId: string;
+  pdfPath: string;
   references: string | null;
   status: string;
-  created_at: string;
+  createdAt: string;
 }
+

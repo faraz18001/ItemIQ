@@ -1,7 +1,6 @@
+from app.database import Base, _utcnow
 from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-
-from app.database import Base, _utcnow
 
 
 class Notification(Base):
@@ -12,7 +11,8 @@ class Notification(Base):
     type: Mapped[str] = mapped_column(String(64), default="Info")
     message: Mapped[str] = mapped_column(Text, default="")
     related_question_id: Mapped[int | None] = mapped_column(
-        ForeignKey("question.id"), nullable=True,
+        ForeignKey("question.id"),
+        nullable=True,
     )
     is_read: Mapped[bool] = mapped_column(Boolean, default=False)
     created_at = mapped_column(DateTime, default=_utcnow)
@@ -46,7 +46,8 @@ class MockPaper(Base):
     created_at = mapped_column(DateTime, default=_utcnow)
 
     questions: Mapped[list["MockPaperQuestion"]] = relationship(
-        "MockPaperQuestion", cascade="all, delete-orphan",
+        "MockPaperQuestion",
+        cascade="all, delete-orphan",
         order_by="MockPaperQuestion.position",
     )
 

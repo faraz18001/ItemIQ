@@ -1,11 +1,10 @@
-from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.orm import Session
-
 from app.core.security import require_roles
 from app.database import get_db
 from app.models import QuestionRequest, Subtopic, User
 from app.schemas import AssignRequestPayload, RequestPayload
 from app.services.serializers import serialize_request
+from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy.orm import Session
 
 router = APIRouter(prefix="/requests", tags=["Requests"])
 
@@ -42,9 +41,7 @@ def get_requests(
 ):
     query = db.query(QuestionRequest).order_by(QuestionRequest.created_at.desc())
     if user.role == "faculty":
-        query = query.filter(
-            (QuestionRequest.assigned_to == user.id) | (QuestionRequest.requested_by == user.id)
-        )
+        query = query.filter((QuestionRequest.assigned_to == user.id) | (QuestionRequest.requested_by == user.id))
     elif user.role in ("sme", "examiner"):
         query = query.filter(QuestionRequest.requested_by == user.id)
     return [serialize_request(db, r) for r in query.all()]

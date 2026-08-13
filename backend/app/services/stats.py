@@ -7,10 +7,9 @@ engine is implemented. Keeping the computations here means swapping in girth
 later touches one file.
 """
 
+from app.models import Attempt, ExamPaperQuestion, Question, StudentResponse
 from sqlalchemy import Integer, func
 from sqlalchemy.orm import Session
-
-from app.models import Attempt, ExamPaperQuestion, Question, StudentResponse
 
 
 def attempt_aggregates(db: Session, question_ids: list[int]) -> dict[int, dict]:
@@ -71,7 +70,6 @@ def sitting_stats(db: Session, paper_id: int) -> None:
                 picks[r.selected_position] = picks.get(r.selected_position, 0) + 1
         option_picks = [picks.get(i, 0) for i in range(len(link.question.options))]
 
-        mean_others = _mean_others(responses, link)
         point_biserial = _point_biserial(responses, correct, n)
 
         link.n_responses = n
@@ -122,19 +120,14 @@ def _std(values: list[float], mean: float, n: int) -> float:
 
 
 def _distractor_efficiency(option_picks: list[int], correct: int) -> float:
-    total_distractor_picks = sum(option_picks) - correct
-    functioning = sum(1 for i, picks in enumerate(option_picks) if picks > 0)
+    functioning = sum(1 for picks in option_picks if picks > 0)
     if len(option_picks) <= 1:
         return 0.0
     return functioning / (len(option_picks) - 1)
 
 
 def paper_level_stats(db: Session, paper_id: int) -> dict:
-    links = (
-        db.query(ExamPaperQuestion)
-        .filter(ExamPaperQuestion.exam_paper_id == paper_id)
-        .all()
-    )
+    links = db.query(ExamPaperQuestion).filter(ExamPaperQuestion.exam_paper_id == paper_id).all()
     responses = db.query(StudentResponse).filter(StudentResponse.exam_paper_id == paper_id).all()
     candidates = {r.candidate_key for r in responses}
     per_item = [link for link in links if link.n_responses]
@@ -162,10 +155,7 @@ def paper_level_stats(db: Session, paper_id: int) -> dict:
     mean_p = sum(p_values) / len(p_values)
     mean_disc = sum(point_biserials) / len(point_biserials) if point_biserials else None
     per_candidate = {c: [r for r in responses if r.candidate_key == c] for c in candidates}
-    scores = [
-        sum(1 for r in rows if r.is_correct) / len(rows)
-        for rows in per_candidate.values()
-    ]
+    scores = [sum(1 for r in rows if r.is_correct) / len(rows) for rows in per_candidate.values()]
     mean_score = sum(scores) / len(scores)
     sd = _std(scores, mean_score, len(scores))
 

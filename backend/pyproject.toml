@@ -1,0 +1,19 @@
+[tool.ruff]
+target-version = "py310"
+line-length = 120
+src = ["app", "seed", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "W", "UP", "B"]
+ignore = [
+  "B008",  # FastAPI Depends() in signature is idiomatic
+]
+
+[tool.ruff.lint.isort]
+force-sort-within-sections = true
+
+[tool.ruff.format]
+docstring-code-format = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

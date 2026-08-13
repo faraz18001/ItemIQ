@@ -10,7 +10,7 @@ are therefore returned as null and the frontend falls back to classical stats.
 When the girth pipeline lands, only the helpers that build IRTParams change.
 """
 
-from app.models import ExamPaperQuestion, Question, StudentResponse
+from app.models import ExamPaperQuestion, Question
 from app.services.serializers import paper_meta, serialize_question
 from app.services.stats import paper_level_stats
 
@@ -20,34 +20,53 @@ MIN_ATTEMPTS = 30  # difficulty_tagging.MIN_IRT_RESPONSES
 def quality_flags(discrimination_status, attempt_count, contradiction, nonfunctional_distractors):
     flags = []
     if contradiction:
-        flags.append({
-            "key": "contradiction",
-            "tone": "warning",
-            "label": "Signal contradiction",
-            "detail": "Faculty and AI difficulty estimates disagree significantly before student data has stabilised.",
-        })
+        flags.append(
+            {
+                "key": "contradiction",
+                "tone": "warning",
+                "label": "Signal contradiction",
+                "detail": (
+                    "Faculty and AI difficulty estimates disagree significantly "
+                    "before student data has stabilised."
+                ),
+            }
+        )
     if attempt_count >= MIN_ATTEMPTS:
         if discrimination_status == "negative":
-            flags.append({
-                "key": "negative-discrimination",
-                "tone": "critical",
-                "label": "Negative discrimination",
-                "detail": "Weaker students outperform stronger ones on this item — check the answer key, or retire it.",
-            })
+            flags.append(
+                {
+                    "key": "negative-discrimination",
+                    "tone": "critical",
+                    "label": "Negative discrimination",
+                    "detail": (
+                        "Weaker students outperform stronger ones on this item "
+                        "— check the answer key, or retire it."
+                    ),
+                }
+            )
         elif discrimination_status == "poor":
-            flags.append({
-                "key": "poor-discriminator",
-                "tone": "serious",
-                "label": "Poor discriminator",
-                "detail": f"The item does not effectively separate strong from weak students (a below {MIN_ATTEMPTS}).",
-            })
+            flags.append(
+                {
+                    "key": "poor-discriminator",
+                    "tone": "serious",
+                    "label": "Poor discriminator",
+                    "detail": (
+                        "The item does not effectively separate strong from weak students."
+                    ),
+                }
+            )
         if nonfunctional_distractors and nonfunctional_distractors >= 2:
-            flags.append({
-                "key": "nonfunctional-distractors",
-                "tone": "serious",
-                "label": "Non-functional distractors",
-                "detail": f"{nonfunctional_distractors} distractors were chosen by under 5% of students, so the item offers fewer real choices.",
-            })
+            flags.append(
+                {
+                    "key": "nonfunctional-distractors",
+                    "tone": "serious",
+                    "label": "Non-functional distractors",
+                    "detail": (
+                        f"{nonfunctional_distractors} distractors were chosen by under 5% of students, "
+                        "so the item offers fewer real choices."
+                    ),
+                }
+            )
     return flags
 
 
@@ -87,10 +106,10 @@ def serialize_item_stat(db, link, paper_meta_cache):
         "pValue": round(p, 3) if p is not None else None,
         "discriminationIndex": None,
         "pointBiserial": round(link.point_biserial, 3) if link.point_biserial is not None else None,
-        "distractorEfficiency": round(link.distractor_efficiency, 3) if link.distractor_efficiency is not None else None,
-        "nonfunctionalDistractors": _nonfunctional_distractors(
-            link.option_picks, correct_position, n
+        "distractorEfficiency": (
+            round(link.distractor_efficiency, 3) if link.distractor_efficiency is not None else None
         ),
+        "nonfunctionalDistractors": _nonfunctional_distractors(link.option_picks, correct_position, n),
         "optionPicks": list(link.option_picks) if link.option_picks else [],
         "difficultyTag": link.difficulty_tag,
         "studentSignal": round(1 - p, 3) if p is not None else None,
@@ -106,6 +125,7 @@ def serialize_item_stat(db, link, paper_meta_cache):
 def paper_summaries(db):
     summaries = []
     from app.models import ExamPaper
+
     for paper in db.query(ExamPaper).order_by(ExamPaper.exam_date.desc().nullslast(), ExamPaper.id.desc()).all():
         stats = paper_level_stats(db, paper.id)
         summaries.append({**paper_meta(paper, db), "stats": stats})
@@ -114,9 +134,11 @@ def paper_summaries(db):
 
 def paper_analytics(db, paper_id, viewer=None):
     from app.models import ExamPaper
+
     paper = db.get(ExamPaper, paper_id)
     if not paper:
         from fastapi import HTTPException
+
         raise HTTPException(status_code=404, detail="Paper not found")
 
     stats = paper_level_stats(db, paper.id)
@@ -127,16 +149,19 @@ def paper_analytics(db, paper_id, viewer=None):
     attempts_total = 0
 
     from app.services.stats import attempt_aggregates
+
     qids = [link.question_id for link in links]
     attempt_map = attempt_aggregates(db, qids)
     for link in links:
         q = link.question
         sitting = serialize_item_stat(db, link, None)
-        items.append({
-            "position": link.position,
-            "question": serialize_question(q, viewer=viewer, attempts=attempt_map),
-            "sitting": sitting,
-        })
+        items.append(
+            {
+                "position": link.position,
+                "question": serialize_question(q, viewer=viewer, attempts=attempt_map),
+                "sitting": sitting,
+            }
+        )
         attempts_total += q.attempt_count or 0
         tag = link.difficulty_tag
         label = tag if tag in difficulty_counts else "Not calibrated"
@@ -150,11 +175,13 @@ def paper_analytics(db, paper_id, viewer=None):
                 sitting["nonfunctionalDistractors"],
             )
             if flags:
-                needs_attention.append({
-                    "question": serialize_question(q, viewer=viewer, attempts=attempt_map),
-                    "sitting": sitting,
-                    "flags": flags,
-                })
+                needs_attention.append(
+                    {
+                        "question": serialize_question(q, viewer=viewer, attempts=attempt_map),
+                        "sitting": sitting,
+                        "flags": flags,
+                    }
+                )
 
     difficulty_distribution = [{"label": k, "value": v} for k, v in difficulty_counts.items() if v]
 
@@ -172,7 +199,6 @@ def paper_analytics(db, paper_id, viewer=None):
 
 
 def item_detail(db, question_id, viewer=None):
-    from app.models import ExamPaperQuestion, StudentResponse
     from fastapi import HTTPException
 
     q = db.get(Question, question_id)
@@ -180,6 +206,7 @@ def item_detail(db, question_id, viewer=None):
         raise HTTPException(status_code=404, detail="Question not found")
 
     from app.services.stats import attempt_aggregates
+
     agg = attempt_aggregates(db, [q.id]).get(q.id)
     nonfunctional = None
     if agg and agg["picks"]:
@@ -197,10 +224,15 @@ def item_detail(db, question_id, viewer=None):
     sittings = []
     for link in (
         db.query(ExamPaperQuestion)
-        .filter(ExamPaperQuestion.question_id == q.id, ExamPaperQuestion.n_responses.isnot(None), ExamPaperQuestion.n_responses > 0)
+        .filter(
+            ExamPaperQuestion.question_id == q.id,
+            ExamPaperQuestion.n_responses.isnot(None),
+            ExamPaperQuestion.n_responses > 0,
+        )
         .all()
     ):
         from app.models import ExamPaper
+
         paper = db.get(ExamPaper, link.exam_paper_id)
         if not paper:
             continue

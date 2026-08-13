@@ -1,10 +1,9 @@
-from fastapi import APIRouter, Depends
-from sqlalchemy.orm import Session
-
 from app.core.security import get_current_user
 from app.database import get_db
 from app.models import User
 from app.services.analytics import item_detail, paper_analytics, paper_summaries
+from fastapi import APIRouter, Depends
+from sqlalchemy.orm import Session
 
 router = APIRouter(prefix="/analytics", tags=["Analytics"])
 

@@ -1,9 +1,10 @@
-from datetime import timedelta
-from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.orm import Session
-
 from app.config import get_settings
-from app.core.security import create_access_token, get_current_user, get_password_hash, verify_password
+from app.core.security import (
+    create_access_token,
+    get_current_user,
+    get_password_hash,
+    verify_password,
+)
 from app.database import get_db
 from app.models import User
 from app.schemas import (
@@ -12,8 +13,11 @@ from app.schemas import (
     LoginRequest,
     PasswordResetSubmit,
     RegisterRequest,
+    VerifyEmailRequest,
 )
 from app.services.serializers import serialize_auth_user
+from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy.orm import Session
 
 router = APIRouter(prefix="/auth", tags=["Auth"])
 settings = get_settings()
@@ -24,15 +28,12 @@ PUBLIC_ROLES = {"faculty", "student"}
 
 
 def _find_user(db: Session, identifier: str) -> User | None:
-    return (
-        db.query(User)
-        .filter((User.email == identifier) | (User.username == identifier))
-        .first()
-    )
+    return db.query(User).filter((User.email == identifier) | (User.username == identifier)).first()
 
 
 def _reset_token(user_id: int) -> str:
     import jwt
+
     return jwt.encode(
         {"sub": str(user_id), "scope": "reset"},
         settings.secret_key,
@@ -42,10 +43,13 @@ def _reset_token(user_id: int) -> str:
 
 def _verify_reset_token(token: str) -> int:
     import jwt
+
     try:
         payload = jwt.decode(token, settings.secret_key, algorithms=[settings.algorithm])
     except jwt.PyJWTError:
-        raise HTTPException(status_code=400, detail="The reset token is invalid or has expired.")
+        raise HTTPException(
+            status_code=400, detail="The reset token is invalid or has expired."
+        ) from None
     if payload.get("scope") != "reset":
         raise HTTPException(status_code=400, detail="The reset token is invalid or has expired.")
     return int(payload.get("sub", 0))
@@ -84,7 +88,7 @@ def login(payload: LoginRequest, db: Session = Depends(get_db)):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect email or password",
-        )
+        ) from None
     if not user.is_active:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -140,3 +144,31 @@ def reset_password(payload: PasswordResetSubmit, db: Session = Depends(get_db)):
     user.password_hash = get_password_hash(payload.newPassword)
     db.commit()
     return {"ok": True}
+
+
+@router.post("/verify-email")
+def verify_email(payload: VerifyEmailRequest, db: Session = Depends(get_db)):
+    import jwt
+
+    token = payload.token
+    if not token:
+        raise HTTPException(status_code=400, detail="Token is required.")
+
+    try:
+        decoded = jwt.decode(token, settings.secret_key, algorithms=[settings.algorithm])
+        user_id = decoded.get("sub")
+        if user_id:
+            user = db.get(User, int(user_id))
+            if user:
+                return {"ok": True, "email": user.email}
+        email_claim = decoded.get("email")
+        if email_claim:
+            return {"ok": True, "email": email_claim}
+    except (jwt.PyJWTError, ValueError, TypeError):
+        pass
+
+    user = db.query(User).filter(User.email == token).first()
+    if user:
+        return {"ok": True, "email": user.email}
+
+    raise HTTPException(status_code=400, detail="Invalid or expired verification token.")

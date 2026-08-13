@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { motion } from 'framer-motion';
+import { motion, type Variants } from 'framer-motion';
 
 /* Hallmark · genre: editorial · macrostructure: Long Document · theme: custom
    crimson-tinted OKLCH · enrichment: Tier-B hand-built SVG (ICC curve) · nav:
@@ -58,10 +58,9 @@ const STEPS = [
   { n: '04', t: 'Measure', d: 'Student attempts feed IRT, and the difficulty tag recalibrates.' },
 ];
 
-// Easing function for smooth, non-bouncy entrances (easeOutQuart)
-const TRANSITION = { duration: 0.8, ease: [0.165, 0.84, 0.44, 1] };
+const TRANSITION = { duration: 0.8, ease: [0.165, 0.84, 0.44, 1] as const };
 
-const fadeUpVariants = {
+const fadeUpVariants: Variants = {
   hidden: { opacity: 0, y: 30 },
   visible: { opacity: 1, y: 0, transition: TRANSITION }
 };

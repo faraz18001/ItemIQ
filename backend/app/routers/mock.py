@@ -1,13 +1,12 @@
-from fastapi import APIRouter, Depends, HTTPException
 from random import sample as random_sample
-
-from sqlalchemy.orm import Session
 
 from app.core.security import require_roles
 from app.database import get_db
 from app.models import Attempt, MockPaper, MockPaperQuestion, Question, User
 from app.schemas import MockStart, MockSubmit
 from app.services.serializers import attempt_result, serialize_question
+from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy.orm import Session
 
 router = APIRouter(prefix="/mock", tags=["Mock exams"])
 
@@ -22,20 +21,22 @@ def start_mock(
     if payload.subtopicId:
         query = query.filter(Question.subtopic_id == int(payload.subtopicId))
     elif payload.topicId:
-        query = query.filter(Question.subtopic_id.in_(
-            db.query(Question.subtopic_id).filter(
-                Question.subtopic_id.isnot(None),
-                Question.id.in_(db.query(Question.id).join(Question.subtopic).filter(
-                    Question.subtopic.has(topic_id=int(payload.topicId)) if False else True
-                )),
+        query = query.filter(
+            Question.subtopic_id.in_(
+                db.query(Question.subtopic_id).filter(
+                    Question.subtopic_id.isnot(None),
+                    Question.id.in_(
+                        db.query(Question.id)
+                        .join(Question.subtopic)
+                        .filter(Question.subtopic.has(topic_id=int(payload.topicId)) if False else True)
+                    ),
+                )
             )
-        ))
+        )
     elif payload.subjectId:
-        query = query.filter(Question.subtopic_id.in_(
-            db.query(Question.subtopic_id).filter(
-                Question.subtopic_id.isnot(None)
-            )
-        ))
+        query = query.filter(
+            Question.subtopic_id.in_(db.query(Question.subtopic_id).filter(Question.subtopic_id.isnot(None)))
+        )
     if payload.difficulty:
         query = query.filter(Question.difficulty_tag == payload.difficulty)
 
@@ -83,18 +84,16 @@ def submit_mock(
             answered += 1
             if is_correct:
                 correct += 1
-            prior = (
-                db.query(Attempt)
-                .filter(Attempt.user_id == user.id, Attempt.question_id == question.id)
-                .first()
+            prior = db.query(Attempt).filter(Attempt.user_id == user.id, Attempt.question_id == question.id).first()
+            db.add(
+                Attempt(
+                    user_id=user.id,
+                    question_id=question.id,
+                    selected_position=selected,
+                    is_correct=is_correct,
+                    is_first=prior is None,
+                )
             )
-            db.add(Attempt(
-                user_id=user.id,
-                question_id=question.id,
-                selected_position=selected,
-                is_correct=is_correct,
-                is_first=prior is None,
-            ))
             question.attempt_count = (question.attempt_count or 0) + 1
         results.append(attempt_result(question, selected, is_correct, prior is None if selected is not None else False))
 

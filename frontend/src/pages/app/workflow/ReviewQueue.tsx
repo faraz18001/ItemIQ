@@ -1,15 +1,17 @@
 import { useMemo, useState } from 'react';
 import { ClipboardCheck, Eye, Gavel } from 'lucide-react';
+import { toast } from 'sonner';
 import { PageHeader } from '@/components/common/PageHeader';
 import { StatusBadge, DifficultyBadge } from '@/components/common/Badges';
 import { EmptyState } from '@/components/common/EmptyState';
 import { QuestionDetailDialog } from '@/components/common/QuestionDetailDialog';
 import { ReviewDecisionModal } from './ReviewDecisionModal';
 import { SubmissionReviewModal } from './SubmissionReviewModal';
-import { Card, CardContent } from '@/components/ui/card';
+
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useData } from '@/context/DataContext';
+import { api } from '@/lib/api';
 import { timeAgo } from '@/lib/format';
 import type { Question, PdfSubmission } from '@/types';
 
@@ -18,6 +20,16 @@ export function ReviewQueue({ stage }: { stage: 'departmental' | 'med_edu' }) {
   const [review, setReview] = useState<Question | null>(null);
   const [preview, setPreview] = useState<Question | null>(null);
   const [submissionReview, setSubmissionReview] = useState<PdfSubmission | null>(null);
+
+  const handleViewPdf = async (submissionId: string) => {
+    try {
+      const blob = await api.getBlob(`/questions/submissions/download/${submissionId}`);
+      const url = URL.createObjectURL(blob);
+      window.open(url, '_blank');
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to load PDF.');
+    }
+  };
 
   const queue = useMemo(() => {
     const statuses = stage === 'departmental'
@@ -51,7 +63,7 @@ export function ReviewQueue({ stage }: { stage: 'departmental' | 'med_edu' }) {
       ) : (
         <div className="space-y-0 divide-y divide-border border-y border-border">
           {submissionQueue.map((s) => {
-            const req = requests.find((r) => r.id === s.request_id);
+            const req = requests.find((r) => r.id === s.requestId);
             return (
               <div key={s.id} className="flex flex-col gap-4 py-5 sm:flex-row sm:items-center bg-muted/20">
                 <div className="min-w-0 flex-1 space-y-2">
@@ -59,10 +71,10 @@ export function ReviewQueue({ stage }: { stage: 'departmental' | 'med_edu' }) {
                     <span className="font-mono text-sm font-semibold text-brand">PDF UPLOAD</span>
                     <StatusBadge status={s.status === 'PENDING_SME' ? 'under_departmental_review' : 'under_med_edu_review'} />
                     <span className="text-xs font-medium text-muted-foreground">
-                      by {userById(s.faculty_id)?.name} · {timeAgo(s.created_at)}
+                      by {userById(s.facultyId)?.name} · {timeAgo(s.createdAt)}
                     </span>
                   </div>
-                  <p className="line-clamp-2 text-base font-medium">{s.pdf_path ? s.pdf_path.split('/').pop() : 'Unknown file'}</p>
+                  <p className="line-clamp-2 text-base font-medium">{s.pdfPath ? s.pdfPath.split('/').pop() : 'Unknown file'}</p>
                   {req && (
                     <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
                       {req.subjectName} · {req.subtopicName}
@@ -70,10 +82,8 @@ export function ReviewQueue({ stage }: { stage: 'departmental' | 'med_edu' }) {
                   )}
                 </div>
                 <div className="flex shrink-0 gap-3">
-                  <Button variant="outline" size="sm" asChild className="border-border">
-                    <a href={`/api/questions/submissions/download/${s.id}`} target="_blank" rel="noreferrer">
-                      <Eye className="size-4 mr-2" /> View PDF
-                    </a>
+                  <Button variant="outline" size="sm" onClick={() => handleViewPdf(s.id)} className="border-border">
+                    <Eye className="size-4 mr-2" /> View PDF
                   </Button>
                   <Button size="sm" onClick={() => setSubmissionReview(s)}>
                     <Gavel className="size-4 mr-2" /> Review

@@ -16,7 +16,7 @@ export function AddQuestion() {
   const { requests, uploadSubmissionPdf } = useData();
   const navigate = useNavigate();
   
-  const myRequests = useMemo(() => requests.filter((r) => r.assignedTo === session?.id && r.status !== 'completed'), [requests, session?.id]);
+  const myRequests = useMemo(() => requests.filter((r) => r.assignedTo === session?.id && r.status !== 'Completed'), [requests, session?.id]);
 
   const [requestId, setRequestId] = useState<string>('');
   const [file, setFile] = useState<File | null>(null);

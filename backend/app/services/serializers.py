@@ -6,22 +6,20 @@ types and the API cannot drift apart. ``serialize_question`` takes the optional
 in one query instead of N+1.
 """
 
-from typing import Iterable
-
-from sqlalchemy.orm import Session
-
 from app.models import (
+    TOS,
     Description,
     ExamPaper,
     PdfSubmission,
     Program,
     Question,
-    Subtopic,
+    QuestionRequest,
     Subject,
-    TOS,
+    Subtopic,
     Topic,
     User,
 )
+from sqlalchemy.orm import Session
 
 DEFAULT_WEIGHTS = {"faculty": 0.6, "ai": 0.2, "student": 0.2}
 
@@ -35,6 +33,7 @@ def _option_label(position: int) -> str:
 
 
 # ── users ────────────────────────────────────────────────────────────────────
+
 
 def serialize_user(user: User) -> dict:
     roles = sorted({user.role, *(r.name for r in user.granted)})
@@ -61,6 +60,7 @@ def serialize_auth_user(user: User) -> dict:
 
 # ── taxonomy / programmes ────────────────────────────────────────────────────
 
+
 def serialize_program(program) -> dict:
     return {
         "id": str(program.id),
@@ -75,7 +75,14 @@ def serialize_program(program) -> dict:
 def serialize_taxonomy(db: Session) -> dict:
     subjects = []
     for s in db.query(Subject).filter_by(is_active=True).order_by(Subject.name).all():
-        subjects.append({"id": str(s.id), "name": s.name, "code": s.code, "programId": str(s.program_id) if s.program_id else None})
+        subjects.append(
+            {
+                "id": str(s.id),
+                "name": s.name,
+                "code": s.code,
+                "programId": str(s.program_id) if s.program_id else None,
+            }
+        )
 
     topics = []
     for t in db.query(Topic).filter_by(is_active=True).order_by(Topic.name).all():
@@ -83,13 +90,15 @@ def serialize_taxonomy(db: Session) -> dict:
 
     subtopics = []
     for s in db.query(Subtopic).filter_by(is_active=True).order_by(Subtopic.name).all():
-        subtopics.append({
-            "id": str(s.id),
-            "topicId": str(s.topic_id),
-            "subjectId": str(s.topic.subject_id),
-            "name": s.name,
-            "code": s.code,
-        })
+        subtopics.append(
+            {
+                "id": str(s.id),
+                "topicId": str(s.topic_id),
+                "subjectId": str(s.topic.subject_id),
+                "name": s.name,
+                "code": s.code,
+            }
+        )
 
     descriptions = [
         {"id": str(d.id), "subtopicId": str(d.subtopic_id), "text": d.text}
@@ -99,6 +108,7 @@ def serialize_taxonomy(db: Session) -> dict:
 
 
 # ── requests ─────────────────────────────────────────────────────────────────
+
 
 def request_status(req: QuestionRequest, submitted: int) -> str:
     if req.status in ("FULFILLED", "COMPLETED"):
@@ -111,16 +121,19 @@ def request_status(req: QuestionRequest, submitted: int) -> str:
 
 
 def serialize_request(db: Session, req: QuestionRequest) -> dict:
-    submitted = (
-        db.query(PdfSubmission).filter(PdfSubmission.request_id == req.id).count()
-    )
+    submitted = db.query(PdfSubmission).filter(PdfSubmission.request_id == req.id).count()
     approved = (
-        db.query(PdfSubmission)
-        .filter(PdfSubmission.request_id == req.id, PdfSubmission.status == "APPROVED")
-        .first()
+        db.query(PdfSubmission).filter(PdfSubmission.request_id == req.id, PdfSubmission.status == "APPROVED").first()
         is not None
     )
-    status = "Completed" if approved else "In_Progress" if submitted > 0 else "Assigned" if req.assigned_to else "Generated"
+    if approved:
+        status = "Completed"
+    elif submitted > 0:
+        status = "In_Progress"
+    elif req.assigned_to:
+        status = "Assigned"
+    else:
+        status = "Generated"
 
     subtopic = db.get(Subtopic, req.subtopic_id) if req.subtopic_id else None
     topic = subtopic.topic if subtopic else (db.get(Topic, req.topic_id) if req.topic_id else None)
@@ -144,19 +157,21 @@ def serialize_request(db: Session, req: QuestionRequest) -> dict:
 
 # ── submissions ──────────────────────────────────────────────────────────────
 
+
 def serialize_submission(sub: PdfSubmission) -> dict:
     return {
         "id": str(sub.id),
-        "request_id": str(sub.request_id) if sub.request_id else None,
-        "faculty_id": str(sub.faculty_id),
-        "pdf_path": sub.pdf_path,
+        "requestId": str(sub.request_id) if sub.request_id else None,
+        "facultyId": str(sub.faculty_id),
+        "pdfPath": sub.pdf_path,
         "references": sub.references,
         "status": sub.status,
-        "created_at": _iso(sub.created_at),
+        "createdAt": _iso(sub.created_at),
     }
 
 
 # ── questions ────────────────────────────────────────────────────────────────
+
 
 def _question_names(q: Question) -> dict:
     subtopic = q.subtopic if q.subtopic_id else None
@@ -197,9 +212,7 @@ def serialize_question(
 ) -> dict:
     redact = viewer is not None and viewer.role == "student"
     names = _question_names(q)
-    correct_position = next(
-        (o.position for o in q.options if o.is_correct), None
-    )
+    correct_position = next((o.position for o in q.options if o.is_correct), None)
 
     options = []
     for o in q.options:
@@ -269,6 +282,7 @@ def serialize_review(r) -> dict:
 
 # ── notifications ────────────────────────────────────────────────────────────
 
+
 def serialize_notification(n) -> dict:
     return {
         "id": str(n.id),
@@ -283,24 +297,27 @@ def serialize_notification(n) -> dict:
 
 # ── TOS / papers ─────────────────────────────────────────────────────────────
 
+
 def serialize_tos(tos: TOS, db: Session) -> dict:
     entries = []
     for e in tos.entries:
         subtopic = db.get(Subtopic, e.subtopic_id) if e.subtopic_id else None
         topic = db.get(Topic, e.topic_id) if e.topic_id else (subtopic.topic if subtopic else None)
         subject = topic.subject if topic else None
-        entries.append({
-            "id": str(e.id),
-            "topicId": str(e.topic_id) if e.topic_id else None,
-            "subtopicId": str(e.subtopic_id) if e.subtopic_id else None,
-            "qType": e.q_type,
-            "difficulty": e.difficulty,
-            "nRequired": e.n_required,
-            "bloom": e.bloom,
-            "subtopicName": subtopic.name if subtopic else None,
-            "topicName": topic.name if topic else None,
-            "subjectName": subject.name if subject else None,
-        })
+        entries.append(
+            {
+                "id": str(e.id),
+                "topicId": str(e.topic_id) if e.topic_id else None,
+                "subtopicId": str(e.subtopic_id) if e.subtopic_id else None,
+                "qType": e.q_type,
+                "difficulty": e.difficulty,
+                "nRequired": e.n_required,
+                "bloom": e.bloom,
+                "subtopicName": subtopic.name if subtopic else None,
+                "topicName": topic.name if topic else None,
+                "subjectName": subject.name if subject else None,
+            }
+        )
     return {
         "id": str(tos.id),
         "title": tos.title,

@@ -1,9 +1,8 @@
 from datetime import datetime, timezone
 
+from app.config import get_settings
 from sqlalchemy import create_engine
 from sqlalchemy.orm import DeclarativeBase, sessionmaker
-
-from app.config import get_settings
 
 
 def _utcnow() -> datetime:

@@ -9,9 +9,8 @@ import csv
 import io
 from typing import BinaryIO
 
-from openpyxl import load_workbook
-
 from app.models import ExamPaper, Question
+from openpyxl import load_workbook
 
 
 class ImportError_(Exception):
@@ -75,7 +74,7 @@ def _build_preview(db, paper: ExamPaper, header: list[str], body: list[list[str]
     if not matched_by:
         matched_by.append("position")
         candidate_idxs = _candidate_columns(header)
-        for idx, cell in enumerate(header):
+        for idx, _cell in enumerate(header):
             if idx in candidate_idxs:
                 continue
             q = questions_by_pos.get(len(lookups) + 1)
@@ -129,7 +128,8 @@ def _build_preview(db, paper: ExamPaper, header: list[str], body: list[list[str]
     questions_matched = len({pos for _, pos in lookups.values() if pos != -1})
     used_columns = set(lookups.keys())
     unmatched_columns = [
-        str(h) for h in header
+        str(h)
+        for h in header
         if h and h.strip() and all(idx not in used_columns for idx in range(len(header)) if header[idx] == h)
     ][:10]
 
@@ -142,9 +142,7 @@ def _build_preview(db, paper: ExamPaper, header: list[str], body: list[list[str]
         "answers": answers,
         "matchedBy": matched_by,
         "unmatchedColumns": unmatched_columns,
-        "questionsWithoutColumn": [
-            str(pos) for pos in sorted(questions_by_pos) if pos not in answered_questions
-        ][:10],
+        "questionsWithoutColumn": [str(pos) for pos in sorted(questions_by_pos) if pos not in answered_questions][:10],
         "duplicateCandidates": sorted(duplicate_keys)[:10],
         "blankCells": blank,
         "warnings": warnings,
@@ -161,7 +159,7 @@ def _build_preview(db, paper: ExamPaper, header: list[str], body: list[list[str]
 
 def _find_column(header: list[str], labels: tuple[str, ...]) -> int | None:
     for idx, cell in enumerate(header):
-        if any(l in str(cell).strip().lower() for l in labels):
+        if any(sub in str(cell).strip().lower() for sub in labels):
             return idx
     return None
 
@@ -203,19 +201,20 @@ def _parse_answer(cell: str) -> tuple[int | None, str]:
 
 
 def _commit(db, paper: ExamPaper, rows_by_key: dict, lookups: dict[int, tuple[Question, int]]) -> int:
-    from app.models import Question, StudentResponse
+    from app.models import StudentResponse
 
     written = 0
     for key, rows in rows_by_key.items():
         row = rows[0]
-        for idx, (q, pos) in lookups.items():
+        for idx, (q, _pos) in lookups.items():
             cell = row[idx] if idx < len(row) else ""
             if not cell.strip():
                 continue
             selected, mode = _parse_answer(cell)
             if selected is None:
                 continue
-            is_correct = selected == next((o.position for o in q.options if o.is_correct), -1)
+            is_correct = selected == next((o.position for o in q.question.options if o.is_correct), -1)
+
             # Replace any existing row for this candidate+question (the sheet supersedes).
             existing = (
                 db.query(StudentResponse)
@@ -230,13 +229,15 @@ def _commit(db, paper: ExamPaper, rows_by_key: dict, lookups: dict[int, tuple[Qu
                 existing.selected_position = selected
                 existing.is_correct = is_correct
             else:
-                db.add(StudentResponse(
-                    exam_paper_id=paper.id,
-                    question_id=q.question_id,
-                    candidate_key=key,
-                    selected_position=selected,
-                    is_correct=is_correct,
-                ))
+                db.add(
+                    StudentResponse(
+                        exam_paper_id=paper.id,
+                        question_id=q.question_id,
+                        candidate_key=key,
+                        selected_position=selected,
+                        is_correct=is_correct,
+                    )
+                )
             written += 1
     db.commit()
     return written

@@ -1,8 +1,7 @@
-import { Link, NavLink, Outlet } from 'react-router-dom';
+import { Link, Outlet } from 'react-router-dom';
 import { Brand } from './Brand';
 import { ThemeToggle } from './ThemeToggle';
 import { Button } from '@/components/ui/button';
-import { cn } from '@/lib/utils';
 
 const LINKS = [
   { to: '/', label: 'Home' },

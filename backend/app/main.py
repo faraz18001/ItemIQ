@@ -1,13 +1,23 @@
-import os
 from pathlib import Path
-
-from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi.staticfiles import StaticFiles
 
 from app.config import get_settings
 from app.database import Base, engine
-from app.routers import admin, ai, analytics, auth, engagement, mock, papers, questions, requests, taxonomy, users
+from app.routers import (
+    admin,
+    ai,
+    analytics,
+    auth,
+    engagement,
+    mock,
+    papers,
+    questions,
+    requests,
+    taxonomy,
+    users,
+)
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 
 settings = get_settings()
 

@@ -157,6 +157,24 @@ async function download(path: string, fallbackName: string): Promise<void> {
   URL.revokeObjectURL(url);
 }
 
+async function getBlob(path: string): Promise<Blob> {
+  const headers: Record<string, string> = {};
+  const token = getToken();
+  if (token) headers.Authorization = `Bearer ${token}`;
+
+  let res: Response;
+  try {
+    res = await fetch(`${BASE}${path}`, { headers });
+  } catch {
+    throw new ApiError(0, 'Cannot reach the ItemIQ server. Is the backend running?');
+  }
+  if (!res.ok) {
+    const text = await res.text();
+    throw new ApiError(res.status, extractMessage(safeParse(text)) ?? res.statusText);
+  }
+  return res.blob();
+}
+
 export const api = {
   get: <T>(path: string) => request<T>('GET', path),
   post: <T>(path: string, body?: unknown) => request<T>('POST', path, body ?? {}),
@@ -164,5 +182,7 @@ export const api = {
   del: <T>(path: string) => request<T>('DELETE', path),
   upload,
   download,
+  getBlob,
   qs,
 };
+

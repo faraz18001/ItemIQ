@@ -1,12 +1,7 @@
-from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
-from pathlib import Path
-from typing import Optional
 import os
+from pathlib import Path
 import shutil
 import uuid
-
-from fastapi.responses import FileResponse
-from sqlalchemy.orm import Session
 
 from app.config import get_settings
 from app.core.security import get_current_user, has_role, require_roles
@@ -15,15 +10,17 @@ from app.models import (
     PdfSubmission,
     Question,
     QuestionOption,
-    QuestionRequest,
     QuestionReview,
     SubmissionReviewLog,
     Subtopic,
     User,
 )
 from app.schemas import QuestionCreate, QuestionUpdate, ReviewDecision
-from app.services.serializers import serialize_question, serialize_review, serialize_submission
+from app.services.serializers import serialize_question, serialize_submission
 from app.services.stats import attempt_aggregates
+from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
+from fastapi.responses import FileResponse
+from sqlalchemy.orm import Session
 
 router = APIRouter(prefix="/questions", tags=["Questions & Workflows"])
 
@@ -107,7 +104,12 @@ def update_question(
     question = db.get(Question, question_id)
     if not question:
         raise HTTPException(status_code=404, detail="Question not found")
-    if question.author_id != user.id and not has_role(user, "qbm") and not has_role(user, "hod") and not has_role(user, "admin"):
+    if (
+        question.author_id != user.id
+        and not has_role(user, "qbm")
+        and not has_role(user, "hod")
+        and not has_role(user, "admin")
+    ):
         raise HTTPException(status_code=403, detail="You cannot edit this question.")
 
     if payload.subtopicId is not None:
@@ -176,24 +178,30 @@ def review_question(
     else:
         raise HTTPException(status_code=400, detail="Unknown review stage.")
 
-    db.add(QuestionReview(
-        question_id=question.id,
-        reviewer_id=user.id,
-        stage=payload.stage,
-        decision=payload.decision,
-        remarks=payload.remarks,
-    ))
+    db.add(
+        QuestionReview(
+            question_id=question.id,
+            reviewer_id=user.id,
+            stage=payload.stage,
+            decision=payload.decision,
+            remarks=payload.remarks,
+        )
+    )
 
     if payload.stage == "departmental":
         question.status = (
-            "under_med_edu_review" if payload.decision == "accepted"
-            else "correction_required" if payload.decision == "correction_required"
+            "under_med_edu_review"
+            if payload.decision == "accepted"
+            else "correction_required"
+            if payload.decision == "correction_required"
             else "rejected"
         )
     else:
         question.status = (
-            "in_bank" if payload.decision == "accepted"
-            else "correction_required" if payload.decision == "correction_required"
+            "in_bank"
+            if payload.decision == "accepted"
+            else "correction_required"
+            if payload.decision == "correction_required"
             else "rejected"
         )
     question.review_remark = payload.remarks
@@ -204,10 +212,11 @@ def review_question(
 
 # ── PDF submissions ─────────────────────────────────────────────────────────
 
+
 @router.post("/submissions")
 def submit_pdf(
     request_id: str = Form(...),
-    references: Optional[str] = Form(None),
+    references: str | None = Form(None),
     file: UploadFile = File(...),
     user: User = Depends(require_roles("faculty", "sme", "hod", "qbm", "admin")),
     db: Session = Depends(get_db),
@@ -280,13 +289,15 @@ def review_submission(
     else:
         raise HTTPException(status_code=400, detail="Unknown review stage.")
 
-    db.add(SubmissionReviewLog(
-        submission_id=sub.id,
-        reviewer_id=user.id,
-        comment=payload.remarks,
-        decision=payload.decision,
-        stage=payload.stage,
-    ))
+    db.add(
+        SubmissionReviewLog(
+            submission_id=sub.id,
+            reviewer_id=user.id,
+            comment=payload.remarks,
+            decision=payload.decision,
+            stage=payload.stage,
+        )
+    )
 
     if payload.decision not in ("accepted", "rejected", "correction_required"):
         raise HTTPException(status_code=400, detail="Unknown decision.")

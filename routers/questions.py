@@ -1,4 +1,7 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
+import os
+import shutil
+import uuid
 from sqlalchemy.orm import Session
 from typing import List
 from database import get_db, QuestionRequest, PdfSubmission, SubmissionReviewLog, Question, QuestionOption, User
@@ -13,12 +16,28 @@ router = APIRouter(prefix="/questions", tags=["Questions & Workflows"])
 
 # --- 2. PDF Submissions (Faculty) ---
 @router.post("/submissions", response_model=PdfSubmissionResponse)
-def submit_pdf(sub_in: PdfSubmissionCreate, db: Session = Depends(get_db), current_user: dict = Depends(get_current_user)):
+def submit_pdf(
+    request_id: int = Form(...),
+    references: str = Form(None),
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
+):
+    upload_dir = "uploads"
+    os.makedirs(upload_dir, exist_ok=True)
+    
+    file_extension = file.filename.split(".")[-1] if file.filename and "." in file.filename else "pdf"
+    file_name = f"{uuid.uuid4()}.{file_extension}"
+    file_path = os.path.join(upload_dir, file_name)
+    
+    with open(file_path, "wb") as buffer:
+        shutil.copyfileobj(file.file, buffer)
+        
     db_sub = PdfSubmission(
-        request_id=sub_in.request_id,
+        request_id=request_id,
         faculty_id=current_user["id"],
-        pdf_path=sub_in.pdf_path,
-        references=sub_in.references,
+        pdf_path=file_path,
+        references=references,
         status="PENDING_SME"
     )
     db.add(db_sub)

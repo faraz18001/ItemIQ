@@ -465,3 +465,23 @@ export interface AttemptResult {
   explanation: string | null;
   skipped?: boolean;
 }
+
+export interface SubmissionReviewLog {
+  id: string;
+  submissionId: string;
+  reviewerId: string;
+  stage: string;
+  decision: string;
+  remarks: string | null;
+  createdAt: string;
+}
+
+export interface PdfSubmission {
+  id: string;
+  request_id: string | null;
+  faculty_id: string;
+  pdf_path: string;
+  references: string | null;
+  status: string;
+  created_at: string;
+}

@@ -14,7 +14,7 @@ import {
 import { api, ApiError } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
 import type {
-  Difficulty, ExamPaper, Notification, PaperStatus, Program, Question, RequestEntry,
+  Difficulty, ExamPaper, Notification, PaperStatus, PdfSubmission, Program, Question, RequestEntry,
   Taxonomy, TOS, TOSEntryDraft, User,
 } from '@/types';
 
@@ -69,6 +69,7 @@ interface DataCtx {
   papers: ExamPaper[];
   notifications: Notification[];
   bookmarks: string[];
+  submissions: PdfSubmission[];
   progress: ProgressSummary;
 
   loading: boolean;
@@ -86,10 +87,17 @@ interface DataCtx {
     decision: 'accepted' | 'correction_required' | 'rejected';
     remarks: string;
   }) => Promise<void>;
+  reviewSubmission: (args: {
+    submissionId: string;
+    stage: 'departmental' | 'med_edu';
+    decision: 'accepted' | 'correction_required' | 'rejected';
+    remarks: string;
+  }) => Promise<void>;
   assignRequest: (requestId: string, facultyId: string) => Promise<void>;
   generateRequest: (input: {
     subtopicId: string; qCount: number; difficulty: Difficulty; qType?: 'MCQ' | 'SAQ';
   }) => Promise<void>;
+  uploadSubmissionPdf: (requestId: string, file: File, references: string) => Promise<void>;
   markNotificationRead: (id: string) => Promise<void>;
   markAllRead: () => Promise<void>;
   recordAttempt: (questionId: string, selected: number) => Promise<AttemptResult>;
@@ -132,6 +140,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const [papers, setPapers] = useState<ExamPaper[]>([]);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [bookmarks, setBookmarks] = useState<string[]>([]);
+  const [submissions, setSubmissions] = useState<PdfSubmission[]>([]);
   const [progress, setProgress] = useState<ProgressSummary>(EMPTY_PROGRESS);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -150,6 +159,10 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   );
   const loadPapers = useCallback(
     () => api.get<ExamPaper[]>('/papers').then(setPapers),
+    [],
+  );
+  const loadSubmissions = useCallback(
+    () => api.get<PdfSubmission[]>('/questions/submissions').then(setSubmissions),
     [],
   );
   const loadNotifications = useCallback(
@@ -182,7 +195,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       const staffData = isStudent
         ? {
             users: [] as User[], requests: [] as RequestEntry[], tos: [] as TOS[],
-            papers: [] as ExamPaper[], programs: [] as Program[],
+            papers: [] as ExamPaper[], programs: [] as Program[], submissions: [] as PdfSubmission[],
           }
         : {
             users: await api.get<User[]>('/users'),
@@ -193,6 +206,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
             requests: await api.get<RequestEntry[]>('/requests').catch(() => [] as RequestEntry[]),
             tos: await api.get<TOS[]>('/tos'),
             papers: await api.get<ExamPaper[]>('/papers'),
+            submissions: await api.get<PdfSubmission[]>('/questions/submissions'),
             programs: await api.get<Program[]>('/programs'),
           };
       const progressData = isStudent ? await api.get<ProgressSummary>('/progress/me') : EMPTY_PROGRESS;
@@ -206,6 +220,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       setRequests(staffData.requests);
       setTos(staffData.tos);
       setPapers(staffData.papers);
+      setSubmissions(staffData.submissions);
       setPrograms(staffData.programs);
       setProgress(progressData);
     } catch (err) {
@@ -224,6 +239,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       setRequests([]);
       setTos([]);
       setPapers([]);
+      setSubmissions([]);
       setPrograms([]);
       setUsers([]);
       setProgress(EMPTY_PROGRESS);
@@ -258,6 +274,11 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     await Promise.all([loadQuestions(), loadNotifications(), loadRequests().catch(() => {})]);
   }, [loadQuestions, loadNotifications, loadRequests]);
 
+  const reviewSubmission = useCallback<DataCtx['reviewSubmission']>(async ({ submissionId, ...body }) => {
+    await api.post(`/questions/submissions/${submissionId}/review`, body);
+    await Promise.all([loadSubmissions(), loadRequests().catch(() => {}), loadQuestions()]);
+  }, [loadSubmissions, loadRequests, loadQuestions]);
+
   const assignRequest = useCallback<DataCtx['assignRequest']>(async (requestId, facultyId) => {
     await api.post(`/requests/${requestId}/assign`, { facultyId });
     await loadRequests();
@@ -267,6 +288,15 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     await api.post('/requests', input);
     await loadRequests();
   }, [loadRequests]);
+
+  const uploadSubmissionPdf = useCallback<DataCtx['uploadSubmissionPdf']>(async (requestId, file, references) => {
+    const fd = new FormData();
+    fd.append('request_id', requestId);
+    fd.append('file', file);
+    if (references) fd.append('references', references);
+    await api.upload('/questions/submissions', fd);
+    await loadSubmissions();
+  }, [loadSubmissions]);
 
   const markNotificationRead = useCallback<DataCtx['markNotificationRead']>(async (id) => {
     setNotifications((ns) => ns.map((n) => (n.id === id ? { ...n, isRead: true } : n)));
@@ -327,16 +357,16 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   );
 
   const value = useMemo<DataCtx>(() => ({
-    users, taxonomy, questions, bankQuestions, requests, tos, papers, notifications, bookmarks,
+    users, taxonomy, questions, bankQuestions, requests, tos, papers, notifications, bookmarks, submissions,
     progress, loading, error, refresh, userById, programs,
-    addQuestion, updateQuestion, submitQuestion, reviewDecision, assignRequest,
-    generateRequest, markNotificationRead, markAllRead, recordAttempt, toggleBookmark,
+    addQuestion, updateQuestion, submitQuestion, reviewDecision, reviewSubmission, assignRequest,
+    generateRequest, uploadSubmissionPdf, markNotificationRead, markAllRead, recordAttempt, toggleBookmark,
     createPaper, setPaperStatus, createTos,
   }), [
-    users, taxonomy, questions, bankQuestions, requests, tos, papers, notifications, bookmarks,
+    users, taxonomy, questions, bankQuestions, requests, tos, papers, notifications, bookmarks, submissions,
     progress, loading, error, refresh, userById, programs,
-    addQuestion, updateQuestion, submitQuestion, reviewDecision, assignRequest,
-    generateRequest, markNotificationRead, markAllRead, recordAttempt, toggleBookmark,
+    addQuestion, updateQuestion, submitQuestion, reviewDecision, reviewSubmission, assignRequest,
+    generateRequest, uploadSubmissionPdf, markNotificationRead, markAllRead, recordAttempt, toggleBookmark,
     createPaper, setPaperStatus, createTos,
   ]);
 

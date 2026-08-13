@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { CheckCircle2, FilePlus2, FileText, Inbox, PencilLine } from 'lucide-react';
 import { PageHeader } from '@/components/common/PageHeader';
@@ -25,7 +25,7 @@ export function FacultyDashboard() {
   return (
     <div className="space-y-6">
       <PageHeader help="facultyDashboard" title={`Welcome, ${session!.name.split(' ')[1] ?? session!.name}`} description="Your authoring workspace: assigned requests, drafts, and review status.">
-        <Button asChild><Link to="/app/faculty/new"><FilePlus2 className="size-4" /> Add question</Link></Button>
+        <Button asChild><Link to="/app/faculty/new"><FilePlus2 className="size-4 mr-2" /> Add question</Link></Button>
       </PageHeader>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">

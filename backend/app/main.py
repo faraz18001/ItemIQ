@@ -1,0 +1,51 @@
+import os
+from pathlib import Path
+
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+
+from app.config import get_settings
+from app.database import Base, engine
+from app.routers import admin, ai, analytics, auth, engagement, mock, papers, questions, requests, taxonomy, users
+
+settings = get_settings()
+
+# Create tables directly in development. Alembic applies the same model in
+# production (see alembic/versions); create_all is intentionally only here so
+# a fresh checkout boots without a migration step.
+if settings.debug:
+    Base.metadata.create_all(bind=engine)
+
+app = FastAPI(title="ItemIQ API")
+
+
+@app.get("/api/health")
+def health_check():
+    return {"status": "ok"}
+
+
+app.include_router(auth.router, prefix="/api")
+app.include_router(users.router, prefix="/api")
+app.include_router(taxonomy.router, prefix="/api")
+app.include_router(questions.router, prefix="/api")
+app.include_router(requests.router, prefix="/api")
+app.include_router(papers.router, prefix="/api")
+app.include_router(engagement.router, prefix="/api")
+app.include_router(mock.router, prefix="/api")
+app.include_router(analytics.router, prefix="/api")
+app.include_router(ai.router, prefix="/api")
+app.include_router(admin.router, prefix="/api")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=settings.allowed_origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# In production FastAPI serves the built frontend bundle.
+dist = Path(settings.frontend_dist)
+if dist.exists():
+    app.mount("/", StaticFiles(directory=str(dist), html=True), name="frontend")

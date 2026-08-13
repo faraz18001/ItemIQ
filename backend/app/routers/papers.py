@@ -1,17 +1,21 @@
+from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile
 from datetime import date
 from random import sample as random_sample
+
+from fastapi.responses import Response
+from sqlalchemy.orm import Session
 
 from app.core.security import get_current_user, require_roles
 from app.database import get_db
 from app.models import (
-    TOS,
     ExamPaper,
     ExamPaperQuestion,
     Program,
     Question,
     Subtopic,
-    Topic,
+    TOS,
     TOSEntry,
+    Topic,
     User,
 )
 from app.schemas import PaperCreate, PaperStatusUpdate, TosCreate
@@ -22,15 +26,11 @@ from app.services.serializers import (
     serialize_tos,
 )
 from app.services.stats import attempt_aggregates, sitting_stats
-from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile
-from fastapi.responses import Response
-from sqlalchemy.orm import Session
 
 router = APIRouter(tags=["Papers & Blueprints"])
 
 
-# ── programmes ───────────────────────────────────────────────────────────────
-
+#programmes
 
 @router.get("/programs")
 def get_programs(
@@ -40,8 +40,7 @@ def get_programs(
     return [serialize_program(p) for p in db.query(Program).order_by(Program.name).all()]
 
 
-# ── table of specification ───────────────────────────────────────────────────
-
+#table of specification
 
 @router.get("/tos")
 def list_tos(
@@ -115,21 +114,12 @@ def autofill(
             selected_ids.add(q.id)
             selected.append(q)
         if available < entry.n_required:
-            name = "Any"
-            if entry.subtopic_id:
-                s = db.get(Subtopic, entry.subtopic_id)
-                name = s.name if s else None
-            elif entry.topic_id:
-                t = db.get(Topic, entry.topic_id)
-                name = t.name if t else None
-            shortfalls.append(
-                {
-                    "entryId": str(entry.id),
-                    "subtopicName": name or "Any",
-                    "required": entry.n_required,
-                    "available": available,
-                }
-            )
+            shortfalls.append({
+                "entryId": str(entry.id),
+                "subtopicName": entry.subtopic_id and db.get(Subtopic, entry.subtopic_id).name or (entry.topic_id and db.get(Topic, entry.topic_id).name) or "Any",
+                "required": entry.n_required,
+                "available": available,
+            })
 
     attempts = attempt_aggregates(db, [q.id for q in selected])
     return {
@@ -141,8 +131,7 @@ def autofill(
     }
 
 
-# ── papers ───────────────────────────────────────────────────────────────────
-
+#papers
 
 @router.get("/papers")
 def list_papers(
@@ -173,7 +162,7 @@ def create_paper(
         try:
             paper.exam_date = date.fromisoformat(payload.examDate)
         except ValueError:
-            raise HTTPException(status_code=400, detail="examDate must be YYYY-MM-DD.") from None
+            raise HTTPException(status_code=400, detail="examDate must be YYYY-MM-DD.")
 
     for position, qid in enumerate(payload.questionIds):
         question = db.get(Question, int(qid))
@@ -225,7 +214,9 @@ def export_paper(
     filename = f"{variant}.docx"
     return Response(
         content=content,
-        media_type=("application/vnd.openxmlformats-officedocument.wordprocessingml.document"),
+        media_type=(
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+        ),
         headers={"Content-Disposition": f'attachment; filename="{filename}"'},
     )
 
@@ -247,7 +238,7 @@ def import_responses(
     try:
         preview = parse_sheet(db, paper, file.file, dry_run=dry_run)
     except ImportError_ as exc:
-        raise HTTPException(status_code=400, detail=str(exc)) from exc
+        raise HTTPException(status_code=400, detail=str(exc))
 
     if not dry_run and preview["responsesWritten"]:
         paper.status = "sat"

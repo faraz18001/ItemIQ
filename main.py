@@ -1,22 +1,9 @@
-from fastapi import FastAPI
-from database import engine, Base
-from routers import auth, users, taxonomy, questions, exams, requests, misc
-import engine as ai_engine
+import sys
+from pathlib import Path
 
-# Create tables
-Base.metadata.create_all(bind=engine)
+# Ensure backend directory is in Python path
+backend_dir = Path(__file__).resolve().parent / "backend"
+if str(backend_dir) not in sys.path:
+    sys.path.insert(0, str(backend_dir))
 
-app = FastAPI(title="ItemIQ Prototype Backend")
-
-app.include_router(auth.router, prefix="/api")
-app.include_router(users.router, prefix="/api")
-app.include_router(taxonomy.router, prefix="/api")
-app.include_router(questions.router, prefix="/api")
-app.include_router(exams.router, prefix="/api")
-app.include_router(requests.router, prefix="/api")
-app.include_router(misc.router, prefix="/api")
-app.include_router(ai_engine.router, prefix="/api")
-
-@app.get("/api/health")
-def health_check():
-    return {"status": "ok", "db": "sqlite"}
+from app.main import app  # noqa: F401

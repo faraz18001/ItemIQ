@@ -1,16 +1,16 @@
-from app.core.security import get_current_user
+from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy.orm import Session
+
+from app.core.security import get_current_user, require_roles
 from app.database import get_db
 from app.models import Attempt, Bookmark, Notification, Question, User
 from app.schemas import AttemptIn, BookmarkIn
 from app.services.serializers import attempt_result, serialize_notification
-from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.orm import Session
 
 router = APIRouter(tags=["Engagement"])
 
 
-# notifications
-
+#notifications
 
 @router.get("/notifications")
 def list_notifications(
@@ -51,8 +51,7 @@ def mark_all_read(
     return {"ok": True}
 
 
-# ── bookmarks ────────────────────────────────────────────────────────────────
-
+#bookmarks
 
 @router.get("/bookmarks")
 def list_bookmarks(
@@ -89,8 +88,7 @@ def remove_bookmark(
     return {"ok": True}
 
 
-# ── attempts & progress ──────────────────────────────────────────────────────
-
+#attempts & progress
 
 @router.post("/attempts")
 def record_attempt(
@@ -104,18 +102,20 @@ def record_attempt(
 
     correct_position = next((o.position for o in question.options if o.is_correct), None)
     is_correct = payload.selected == correct_position
-    prior = db.query(Attempt).filter(Attempt.user_id == user.id, Attempt.question_id == question.id).first()
+    prior = (
+        db.query(Attempt)
+        .filter(Attempt.user_id == user.id, Attempt.question_id == question.id)
+        .first()
+    )
     is_first = prior is None
 
-    db.add(
-        Attempt(
-            user_id=user.id,
-            question_id=question.id,
-            selected_position=payload.selected,
-            is_correct=is_correct,
-            is_first=is_first,
-        )
-    )
+    db.add(Attempt(
+        user_id=user.id,
+        question_id=question.id,
+        selected_position=payload.selected,
+        is_correct=is_correct,
+        is_first=is_first,
+    ))
     question.attempt_count = (question.attempt_count or 0) + 1
     db.commit()
     db.refresh(question)
@@ -127,7 +127,11 @@ def my_progress(
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    first_attempts = db.query(Attempt).filter(Attempt.user_id == user.id, Attempt.is_first.is_(True)).all()
+    first_attempts = (
+        db.query(Attempt)
+        .filter(Attempt.user_id == user.id, Attempt.is_first.is_(True))
+        .all()
+    )
     all_attempts = db.query(Attempt).filter(Attempt.user_id == user.id).count()
 
     attempted = len(first_attempts)
@@ -159,6 +163,7 @@ def my_progress(
         "streak": streak,
         "totalAttempts": all_attempts,
         "bySubject": [
-            {"subject": name, "correct": v["correct"], "total": v["total"]} for name, v in by_subject.items()
+            {"subject": name, "correct": v["correct"], "total": v["total"]}
+            for name, v in by_subject.items()
         ],
     }

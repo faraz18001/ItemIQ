@@ -142,6 +142,30 @@ def seed():
         for s in subtopics:
             db.add(Description(subtopic_id=s.id, text="Core learning outcomes for this subtopic."))
 
+        from app.models import QuestionRequest
+        req1 = QuestionRequest(
+            topic_id=topic.id,
+            subtopic_id=subtopics[0].id,
+            requested_by=users["qbm"].id,
+            assigned_to=users["faculty"].id,
+            q_type="MCQ",
+            difficulty="Medium",
+            q_count=5,
+            status="PENDING",
+        )
+        req2 = QuestionRequest(
+            topic_id=topic.id,
+            subtopic_id=subtopics[1].id,
+            requested_by=users["hod"].id,
+            assigned_to=users["faculty"].id,
+            q_type="MCQ",
+            difficulty="Hard",
+            q_count=3,
+            status="PENDING",
+        )
+        db.add_all([req1, req2])
+        db.commit()
+
         score_map = {"Easy": 0.35, "Medium": 0.55, "Hard": 0.75}
         questions = []
         for stem, opts, subtopic_name, diff, correct_idx in bank_questions():

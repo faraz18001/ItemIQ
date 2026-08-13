@@ -14,7 +14,7 @@ STAFF_ROLES = {"qbm", "hod", "faculty", "sme", "examiner"}
 @router.get("")
 def list_users(
     include_inactive: bool = Query(False),
-    user: User = Depends(require_roles("qbm", "hod", "admin")),
+    user: User = Depends(require_roles("qbm", "hod", "faculty", "sme", "examiner", "admin")),
     db: Session = Depends(get_db),
 ):
     query = db.query(User).order_by(User.name)

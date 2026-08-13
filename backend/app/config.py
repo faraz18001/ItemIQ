@@ -19,11 +19,11 @@ class Settings(BaseSettings):
 
     # Security. The default is a placeholder so the app can boot in a clean
     # checkout; a deployment MUST set SECRET_KEY in .env.
-    secret_key: str = "dev-only-insecure-key-change-me"
+    secret_key: str = "dev-only-insecure-key-change-me-32bytes"
     algorithm: str = "HS256"
     access_token_expire_minutes: int = 60 * 24
 
-    database_url: str = "sqlite:///./itemiq.db"
+    database_url: str = f"sqlite:///{_BACKEND_DIR / 'itemiq.db'}"
 
     # Where uploaded PDFs live and where the built frontend is served from.
     upload_dir: str = str(PROJECT_ROOT / "uploads")

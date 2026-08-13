@@ -198,16 +198,12 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
             papers: [] as ExamPaper[], programs: [] as Program[], submissions: [] as PdfSubmission[],
           }
         : {
-            users: await api.get<User[]>('/users'),
-            // Requests are scoped server-side: faculty see only their own, and
-            // examiners get a 403 outright. Tolerating that here keeps the
-            // authorisation rule in one place (the API) rather than mirroring
-            // it in the client, where the two could drift apart.
+            users: await api.get<User[]>('/users').catch(() => [] as User[]),
             requests: await api.get<RequestEntry[]>('/requests').catch(() => [] as RequestEntry[]),
-            tos: await api.get<TOS[]>('/tos'),
-            papers: await api.get<ExamPaper[]>('/papers'),
-            submissions: await api.get<PdfSubmission[]>('/questions/submissions'),
-            programs: await api.get<Program[]>('/programs'),
+            tos: await api.get<TOS[]>('/tos').catch(() => [] as TOS[]),
+            papers: await api.get<ExamPaper[]>('/papers').catch(() => [] as ExamPaper[]),
+            submissions: await api.get<PdfSubmission[]>('/questions/submissions').catch(() => [] as PdfSubmission[]),
+            programs: await api.get<Program[]>('/programs').catch(() => [] as Program[]),
           };
       const progressData = isStudent ? await api.get<ProgressSummary>('/progress/me') : EMPTY_PROGRESS;
 

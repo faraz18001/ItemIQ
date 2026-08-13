@@ -10,6 +10,7 @@ from app.models import (
     PdfSubmission,
     Question,
     QuestionOption,
+    QuestionRequest,
     QuestionReview,
     SubmissionReviewLog,
     Subtopic,
@@ -318,7 +319,14 @@ def _extract_from_pdf(db: Session, sub: PdfSubmission, viewer: User) -> None:
     try:
         from app.services.pdf_parser import parse_paper
 
+        subtopic_id = None
+        if sub.request_id:
+            req = db.get(QuestionRequest, sub.request_id)
+            if req:
+                subtopic_id = req.subtopic_id
+
         records = parse_paper(sub.pdf_path)
+        print(f"Extracted {len(records)} records from {sub.pdf_path}")
         for rec in records:
             q = Question(
                 stem=rec.get("text", "Empty Question").strip(),
@@ -326,7 +334,7 @@ def _extract_from_pdf(db: Session, sub: PdfSubmission, viewer: User) -> None:
                 marking_scheme=str(rec.get("marks", "")),
                 reference=sub.references,
                 status="in_bank",
-                subtopic_id=None,
+                subtopic_id=subtopic_id,
                 submission_id=sub.id,
                 regions=rec.get("regions", []),
                 author_id=sub.faculty_id,
@@ -337,6 +345,8 @@ def _extract_from_pdf(db: Session, sub: PdfSubmission, viewer: User) -> None:
         db.commit()
     except Exception as exc:  # pragma: no cover - depends on the uploaded file
         print(f"Error during PDF extraction: {exc}")
+        import traceback
+        traceback.print_exc()
         db.rollback()
 
 

@@ -83,13 +83,30 @@ def seed():
         accounts = [
             ("Admin", "admin@itemiq.test", "admin"),
             ("QBM", "qbm@itemiq.test", "qbm"),
+            ("QBM Minai", "ashar.minai@siut.edu.pk", "qbm"),
             ("Head of Department", "hod@itemiq.test", "hod"),
+            ("HOD Yamin", "shagufta.yamin@siut.edu.pk", "hod"),
+            ("Subject Matter Expert", "sme@itemiq.test", "sme"),
             ("Subject Matter Expert", "expert@itemiq.test", "sme"),
+            ("SME Sheikh", "kamran.sheikh@siut.edu.pk", "sme"),
             ("Examiner", "examiner@itemiq.test", "examiner"),
+            ("Examiner Farooq", "nadia.farooq@siut.edu.pk", "examiner"),
             ("Dr. Ahmed", "faculty@itemiq.test", "faculty"),
+            ("Dr. Smith", "smith@itemiq.test", "faculty"),
+            ("Faculty Hussain", "bilal.hussain@siut.edu.pk", "faculty"),
             ("Student", "student@itemiq.test", "student"),
+            ("Student M22", "m22-1042", "student"),
         ]
-        users = {role: _make_user(name, email, role) for name, email, role in accounts}
+        users = {a[1]: _make_user(a[0], a[1], a[2]) for a in accounts}
+        primary_users = {
+            "admin": users["admin@itemiq.test"],
+            "qbm": users["qbm@itemiq.test"],
+            "hod": users["hod@itemiq.test"],
+            "sme": users["sme@itemiq.test"],
+            "examiner": users["examiner@itemiq.test"],
+            "faculty": users["faculty@itemiq.test"],
+            "student": users["student@itemiq.test"],
+        }
         # A small cohort of students so practice stats are real rather than one
         # user hammering an item forty times.
         cohort = [
@@ -146,8 +163,8 @@ def seed():
         req1 = QuestionRequest(
             topic_id=topic.id,
             subtopic_id=subtopics[0].id,
-            requested_by=users["qbm"].id,
-            assigned_to=users["faculty"].id,
+            requested_by=primary_users["qbm"].id,
+            assigned_to=primary_users["faculty"].id,
             q_type="MCQ",
             difficulty="Medium",
             q_count=5,
@@ -156,8 +173,8 @@ def seed():
         req2 = QuestionRequest(
             topic_id=topic.id,
             subtopic_id=subtopics[1].id,
-            requested_by=users["hod"].id,
-            assigned_to=users["faculty"].id,
+            requested_by=primary_users["hod"].id,
+            assigned_to=primary_users["faculty"].id,
             q_type="MCQ",
             difficulty="Hard",
             q_count=3,
@@ -174,7 +191,7 @@ def seed():
                 stem=stem,
                 q_type="MCQ",
                 subtopic_id=sub.id,
-                author_id=users["faculty"].id,
+                author_id=primary_users["faculty"].id,
                 faculty_difficulty=diff,
                 difficulty_tag=diff,
                 difficulty_score=score_map[diff],
@@ -209,7 +226,7 @@ def seed():
         # A sat exam paper so PaperDetail / Analytics have sittings to render.
         paper = ExamPaper(
             title="Mock Cardiovascular Sitting",
-            created_by=users["qbm"].id,
+            created_by=primary_users["qbm"].id,
             status="sat",
             batch="2028",
             exam_type="mock",

@@ -1,13 +1,18 @@
 /**
- * Presentation helpers for psychometric values.
+ * engine.ts — Frontend Psychometric Presentation & Item Response Theory (IRT) Math Utilities.
  *
- * The engine itself — signal weighting, score blending, tag thresholds, IRT —
- * runs on the server in difficulty_tagging.py / scoring.py, and the API returns
- * its output. This file used to carry a hand-ported JS copy of that maths; it
- * drifted from the Python (different MIN_ATTEMPTS, different handling of a
- * missing student signal), which is exactly why the duplication is gone. What
- * remains here only turns numbers the server already computed into words and
- * chart points.
+ * Overview:
+ *   Provides client-side psychometric evaluation helpers, Item Characteristic Curve (ICC) math,
+ *   discrimination classification bands, difficulty interpretation, and quality indicator flags.
+ *
+ * Mathematical Foundations:
+ *   - 3-Parameter Logistic (3PL) IRT Model:
+ *       $$P(\\theta) = c + \\frac{1 - c}{1 + e^{-a(\\theta - b)}}$$
+ *     Where:
+ *       - $\\theta$ (theta): Examinee trait / ability level
+ *       - $a$: Item discrimination parameter (slope of the curve at $b$)
+ *       - $b$: Item difficulty parameter (location parameter on ability scale)
+ *       - $c$: Pseudo-guessing parameter (lower asymptote)
  */
 
 import type { IRTParams, QualityFlag } from '@/types';

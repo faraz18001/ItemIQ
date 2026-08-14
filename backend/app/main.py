@@ -1,3 +1,15 @@
+"""
+main.py — FastAPI Application Entry Point & Route Assembly Server.
+
+Overview:
+  Bootstraps the ItemIQ FastAPI backend application server:
+  - Database schema initialization (automatic table creation for development environment).
+  - CORS middleware configuration with configurable allowed origins.
+  - Mounts all domain API sub-routers under `/api` prefix.
+  - Configures static asset serving for uploaded PDFs and extracted diagram crops (`/uploads/`).
+  - Configures SPA static fallbacks for production frontend serving.
+"""
+
 from pathlib import Path
 
 from app.config import get_settings

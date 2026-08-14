@@ -1,10 +1,13 @@
-"""Statistics helpers.
+"""
+stats.py — Classical Test Theory (CTT) & Psychometric Analytics Engine.
 
-Real IRT calibration (the ``girth`` library) is deliberately not wired up yet;
-this module computes the classical measurements the frontend renders — p-value,
-point-biserial, distractor efficiency — and leaves ``irt`` null until the
-engine is implemented. Keeping the computations here means swapping in girth
-later touches one file.
+Overview:
+  Computes psychometric item statistics derived from exam sittings and student practice attempts:
+  1. Difficulty Index (p-value): Proportion of examinees who answered the item correctly.
+  2. Point-Biserial Correlation ($r_{pbis}$): Item discrimination index measuring how well an item
+     differentiates between high-ability and low-ability students.
+  3. Distractor Efficiency & Frequency Distribution: Frequency count of selected options across examinees.
+  4. Item Response Theory (IRT) Facade: Structured hook point for 2PL/3PL IRT parameter calibration.
 """
 
 from app.models import Attempt, ExamPaperQuestion, Question, StudentResponse

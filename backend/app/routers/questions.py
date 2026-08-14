@@ -1,3 +1,16 @@
+"""
+questions.py — Question Bank Management, Workflow Router & PDF Submission Pipeline.
+
+Overview:
+  This router manages the core question lifecycle within ItemIQ:
+  1. Question Bank Querying (`/questions`): Search, filter, and retrieve questions with psychometric metrics.
+  2. Manual Question Authoring (`POST /questions`): Direct question creation by faculty.
+  3. PDF Past Paper Submissions (`POST /questions/submit-pdf`): Ingestion of Question Paper & Mark Scheme PDFs.
+  4. SME Review Queue (`POST /questions/submissions/{id}/sme-approve`): Subject Matter Expert verification of extracted questions.
+  5. QBM Per-Item Decisions (`POST /questions/submissions/{id}/item-decisions`): Interactive item-by-item sign-off.
+  6. Final Bank Approval (`POST /questions/submissions/{id}/final-approve`): Moving approved questions into the active Question Bank.
+"""
+
 import os
 from pathlib import Path
 import shutil
@@ -30,33 +43,37 @@ router = APIRouter(prefix="/questions", tags=["Questions & Workflows"])
 
 settings = get_settings()
 
+# Default classical test theory difficulty scores mapped from qualitative tags
 DIFFICULTY_SCORE = {"Easy": 0.35, "Medium": 0.55, "Hard": 0.75}
 
 
-# ── Pydantic schemas for item decisions ───────────────────────────────────────
+# ── Pydantic Schemas for Interactive Review ─────────────────────────────────
 
 class ItemDecision(BaseModel):
+    """Represents a QBM's review verdict on an individual extracted question item."""
     q_id: str
-    decision: str   # "accepted" | "rejected"
+    decision: str   # Valid options: "accepted" | "rejected"
     remark: str = ""
 
 class ItemDecisionsPayload(BaseModel):
+    """Payload containing batch item decisions during QBM review."""
     decisions: List[ItemDecision]
 
 
 def _write_question(db: Session, user: User, payload: QuestionCreate, question: Question):
+    """Helper routine to populate or update Question model fields from a authoring payload."""
     question.author_id = user.id
     question.subtopic_id = int(payload.subtopicId)
     question.stem = payload.stem
     question.q_type = "MCQ"
     question.faculty_difficulty = payload.facultyDifficulty
     question.difficulty_tag = payload.facultyDifficulty
-    question.difficulty_score = DIFFICULTY_SCORE.get(payload.facultyDifficulty, 5.5)
+    question.difficulty_score = DIFFICULTY_SCORE.get(payload.facultyDifficulty, 0.55)
     question.ai_difficulty = payload.facultyDifficulty
     question.explanation = payload.explanation
     question.reference = payload.reference
 
-    # Rebuild options from the list; the `correct` index marks the key.
+    # Rebuild options from payload list; position index determines key assignment
     question.options.clear()
     db.flush()
     for position, text in enumerate(payload.options):

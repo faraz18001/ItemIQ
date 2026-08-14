@@ -1,9 +1,16 @@
-"""On-demand AI critique of a question.
+"""
+ai_reviewer.py — Automated Question Quality & Psychometric Critique Service.
 
-The real pipeline calls a hosted LLM; until a provider is configured in the
-environment the service falls back to a deterministic heuristic pass so the
-frontend has something real to render. Swap the heuristic body for an LLM call
-and change the ``provider`` string — the response shape stays identical.
+Overview:
+  Provides automated, real-time quality assurance critiques for assessment items.
+  Evaluates question stems, option length parity, distractor quality, ambiguity,
+  Bloom's cognitive level, and difficulty rating.
+
+Architecture & Provider Fallback:
+  - Default Engine: Deterministic heuristic rule engine (runs locally with zero external API dependencies).
+  - LLM Integration: Built to serve as a plug-and-play facade for Gemini / OpenAI endpoints.
+    To connect a live LLM model, replace the rule body in `critique()` with an API call — the returned
+    dictionary contract remains identical across providers.
 """
 
 from app.schemas import AiCritiqueTarget
@@ -11,6 +18,15 @@ from app.services.serializers import _option_label
 
 
 def critique(target: AiCritiqueTarget) -> dict:
+    """Analyze a question item and return a structured psychometric critique report.
+
+    Args:
+        target: Pydantic schema containing stem, options, correct answer index, and difficulty.
+
+    Returns:
+        Dict containing provider metadata, suggested Bloom level, calculated difficulty score,
+        strengths list, actionable issue fixes, and option distractor analysis.
+    """
     stem = target.stem or ""
     options = [o for o in target.options if o]
     correct = target.correct

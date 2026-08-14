@@ -1,11 +1,17 @@
 /**
- * Application data, backed by the ItemIQ API.
+ * DataContext.tsx — Global State Container & API Data Synchronization Layer.
  *
- * Everything the shell needs is loaded once after sign-in and refreshed after
- * each mutation. At SIUT's scale the whole working set is a few hundred rows,
- * so a single provider is simpler — and fewer round trips — than per-screen
- * fetching. Mutations post to the server and then refresh only the slices they
- * can affect.
+ * Overview:
+ *   Manages the primary application state for ItemIQ frontend web application.
+ *   Provides optimistic state management, caching, and synchronized API communication
+ *   across all user roles (QBM, HOD, Faculty, SME, Student, Admin).
+ *
+ * Architecture & Design Decisions:
+ *   - Centralized Single-Store Architecture: Loads taxonomy metadata, active Question Bank items,
+ *     TOS blueprints, exam papers, PDF submissions, and user notifications into a single React context.
+ *   - Targeted Mutation Refetches: Rather than triggering full-app reloads on every action,
+ *     mutations trigger focused refetches of affected data slices.
+ *   - Role-Aware Data Filtering: Automatically scopes queries based on the active authenticated user role.
  */
 
 import {

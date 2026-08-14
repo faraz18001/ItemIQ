@@ -43,8 +43,12 @@ class PdfSubmission(Base):
     request_id: Mapped[int | None] = mapped_column(ForeignKey("question_request.id"), nullable=True)
     faculty_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False)
     pdf_path: Mapped[str] = mapped_column(String(500), nullable=False)
+    # Mark scheme PDF — mandatory; answers are never in the QP
+    ms_pdf_path: Mapped[str | None] = mapped_column(String(500), nullable=True)
     references: Mapped[str | None] = mapped_column(Text, nullable=True)
     status: Mapped[str] = mapped_column(String(32), default="PENDING_SME")
+    # Stores the structured JSON preview produced by the parser before QBM sign-off
+    extracted_json: Mapped[list | None] = mapped_column(JSON, nullable=True)
     created_at = mapped_column(DateTime, default=_utcnow)
     updated_at = mapped_column(DateTime, default=_utcnow, onupdate=_utcnow)
 
@@ -62,6 +66,10 @@ class Question(Base):
     description_id: Mapped[int | None] = mapped_column(ForeignKey("description.id"), nullable=True)
     submission_id: Mapped[int | None] = mapped_column(ForeignKey("pdf_submission.id"), nullable=True)
     regions: Mapped[list | None] = mapped_column(JSON, nullable=True)
+    # Paths to extracted diagram/image crops from the PDF
+    images: Mapped[list | None] = mapped_column(JSON, nullable=True)
+    # Structured sub-parts for SAQ / theory questions
+    sub_parts: Mapped[list | None] = mapped_column(JSON, nullable=True)
     author_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False)
 
     faculty_difficulty: Mapped[str] = mapped_column(String(16), default="Medium")

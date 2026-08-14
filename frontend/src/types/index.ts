@@ -105,6 +105,14 @@ export interface QuestionOption {
   isCorrect?: boolean;
 }
 
+/** One sub-part of a structured / SAQ question with its marking rubric. */
+export interface QuestionSubPart {
+  label: string;   // "(a)", "(b)", "(i)"
+  text: string;    // the question text for this part
+  marks: number;
+  rubric: string;  // extracted mark scheme answer / rubric
+}
+
 export interface IRTParams { a: number; b: number; c: number }
 
 /** Pre-computed Item Characteristic Curve points from compute_icc_curve(). */
@@ -169,6 +177,10 @@ export interface Question {
   descriptionId?: string;
   stem: string;
   options: QuestionOption[];
+  /** Relative paths to extracted diagram / image crops (served via /uploads). */
+  images: string[];
+  /** Sub-parts for SAQ / Theory questions. Empty array for MCQs. */
+  subParts: QuestionSubPart[];
   /** null when the answer key is redacted for this viewer. */
   correctLabel: string | null;
   facultyDifficulty: Difficulty;
@@ -180,7 +192,7 @@ export interface Question {
   /** null when the answer key is redacted for this viewer. */
   explanation?: string | null;
   /** Detail endpoints only; null when the answer key is redacted. */
-  markingScheme?: MarkingScheme | null;
+  markingScheme?: string | null;
   reference?: string;
   status: QuestionStatus;
   authorId: string;
@@ -481,8 +493,12 @@ export interface PdfSubmission {
   requestId: string | null;
   facultyId: string;
   pdfPath: string;
+  /** Path to the uploaded Mark Scheme PDF (mandatory). */
+  msPdfPath: string | null;
   references: string | null;
   status: string;
+  /** Structured preview JSON produced by the parser — shown during SME/QBM review. */
+  extractedJson: any[] | null;
   createdAt: string;
 }
 

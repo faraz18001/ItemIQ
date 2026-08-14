@@ -164,8 +164,10 @@ def serialize_submission(sub: PdfSubmission) -> dict:
         "requestId": str(sub.request_id) if sub.request_id else None,
         "facultyId": str(sub.faculty_id),
         "pdfPath": sub.pdf_path,
+        "msPdfPath": sub.ms_pdf_path,
         "references": sub.references,
         "status": sub.status,
+        "extractedJson": sub.extracted_json,
         "createdAt": _iso(sub.created_at),
     }
 
@@ -236,6 +238,8 @@ def serialize_question(
         "descriptionId": str(q.description_id) if q.description_id else None,
         "stem": q.stem,
         "options": options,
+        "images": q.images or [],
+        "subParts": q.sub_parts or [],
         "correctLabel": _option_label(correct_position) if correct_position is not None and not redact else None,
         "facultyDifficulty": q.faculty_difficulty,
         "facultySignal": q.faculty_signal,
@@ -244,7 +248,7 @@ def serialize_question(
         "aiReasoning": q.ai_reasoning,
         "cognitiveLevel": q.cognitive_level,
         "explanation": q.explanation if not redact else None,
-        "markingScheme": None,
+        "markingScheme": q.marking_scheme if not redact else None,
         "reference": q.reference,
         "status": q.status,
         "authorId": str(q.author_id),

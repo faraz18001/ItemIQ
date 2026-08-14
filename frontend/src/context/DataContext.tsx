@@ -97,7 +97,7 @@ interface DataCtx {
   generateRequest: (input: {
     subtopicId: string; qCount: number; difficulty: Difficulty; qType?: 'MCQ' | 'SAQ';
   }) => Promise<void>;
-  uploadSubmissionPdf: (requestId: string, file: File, references: string) => Promise<void>;
+  uploadSubmissionPdf: (requestId: string, file: File, references: string, msFile: File) => Promise<void>;
   markNotificationRead: (id: string) => Promise<void>;
   markAllRead: () => Promise<void>;
   recordAttempt: (questionId: string, selected: number) => Promise<AttemptResult>;
@@ -285,10 +285,11 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     await loadRequests();
   }, [loadRequests]);
 
-  const uploadSubmissionPdf = useCallback<DataCtx['uploadSubmissionPdf']>(async (requestId, file, references) => {
+  const uploadSubmissionPdf = useCallback<DataCtx['uploadSubmissionPdf']>(async (requestId, file, references, msFile) => {
     const fd = new FormData();
     fd.append('request_id', requestId);
     fd.append('file', file);
+    fd.append('ms_file', msFile);
     if (references) fd.append('references', references);
     await api.upload('/questions/submissions', fd);
     await loadSubmissions();

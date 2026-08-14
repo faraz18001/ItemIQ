@@ -55,6 +55,11 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Serve uploaded files (extracted images, PDFs) under /uploads/
+uploads_dir = Path(settings.upload_dir)
+uploads_dir.mkdir(parents=True, exist_ok=True)
+app.mount("/uploads", StaticFiles(directory=str(uploads_dir)), name="uploads")
+
 # In production FastAPI serves the built frontend bundle.
 dist = Path(settings.frontend_dist)
 if dist.exists():

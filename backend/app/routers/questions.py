@@ -218,25 +218,48 @@ def review_question(
 def submit_pdf(
     request_id: str = Form(...),
     references: str | None = Form(None),
-    file: UploadFile = File(...),
+    file: UploadFile = File(..., alias="file"),
+    ms_file: UploadFile = File(..., alias="ms_file"),
     user: User = Depends(require_roles("faculty", "sme", "hod", "qbm", "admin")),
     db: Session = Depends(get_db),
 ):
+    """Accept both the Question Paper PDF and the mandatory Mark Scheme PDF."""
     upload_dir = Path(settings.upload_dir)
     upload_dir.mkdir(parents=True, exist_ok=True)
 
+    # Save QP file
     ext = os.path.splitext(file.filename or "pdf")[1] or ".pdf"
-    file_name = f"{uuid.uuid4()}{ext}"
-    file_path = upload_dir / file_name
-    with file_path.open("wb") as buffer:
-        shutil.copyfileobj(file.file, buffer)
+    qp_name = f"{uuid.uuid4()}{ext}"
+    qp_path = upload_dir / qp_name
+    with qp_path.open("wb") as buf:
+        shutil.copyfileobj(file.file, buf)
+
+    # Save MS file
+    ms_ext = os.path.splitext(ms_file.filename or "pdf")[1] or ".pdf"
+    ms_name = f"{uuid.uuid4()}{ms_ext}"
+    ms_path = upload_dir / ms_name
+    with ms_path.open("wb") as buf:
+        shutil.copyfileobj(ms_file.file, buf)
+
+    # Run parser immediately so SME can see structured preview
+    extracted_preview: list | None = None
+    try:
+        from app.services.pdf_parser import parse_paper
+        extracted_preview = parse_paper(str(qp_path), str(ms_path))
+        # Trim heavy fields for the preview JSON
+        for rec in extracted_preview:
+            rec.pop("pdf", None)
+    except Exception as exc:
+        print(f"[submit_pdf] parser warning: {exc}")
 
     sub = PdfSubmission(
         request_id=int(request_id) if request_id.isdigit() else None,
         faculty_id=user.id,
-        pdf_path=str(file_path),
+        pdf_path=str(qp_path),
+        ms_pdf_path=str(ms_path),
         references=references,
         status="PENDING_SME",
+        extracted_json=extracted_preview,
     )
     db.add(sub)
     db.commit()
@@ -316,8 +339,11 @@ def review_submission(
 
 
 def _extract_from_pdf(db: Session, sub: PdfSubmission, viewer: User) -> None:
+    """Called on QBM final approval.  Converts the structured preview JSON into
+    real Question + QuestionOption database rows."""
     try:
         from app.services.pdf_parser import parse_paper
+        from app.config import get_settings
 
         subtopic_id = None
         if sub.request_id:
@@ -325,26 +351,50 @@ def _extract_from_pdf(db: Session, sub: PdfSubmission, viewer: User) -> None:
             if req:
                 subtopic_id = req.subtopic_id
 
-        records = parse_paper(sub.pdf_path)
-        print(f"Extracted {len(records)} records from {sub.pdf_path}")
+        # Use cached preview if available, otherwise re-parse
+        records = sub.extracted_json
+        if not records:
+            cfg = get_settings()
+            images_root = str(Path(cfg.upload_dir).parent)
+            records = parse_paper(
+                sub.pdf_path,
+                sub.ms_pdf_path,
+                images_root=images_root,
+            )
+
+        print(f"[_extract_from_pdf] Inserting {len(records)} questions from submission {sub.id}")
+
         for rec in records:
             q = Question(
-                stem=rec.get("text", "Empty Question").strip(),
-                q_type="MCQ",
-                marking_scheme=str(rec.get("marks", "")),
+                stem=rec.get("stem") or rec.get("text", "Empty Question").strip(),
+                q_type=rec.get("q_type", "MCQ"),
+                marking_scheme=rec.get("marking_scheme", ""),
                 reference=sub.references,
                 status="in_bank",
                 subtopic_id=subtopic_id,
                 submission_id=sub.id,
                 regions=rec.get("regions", []),
+                images=rec.get("images", []),
+                sub_parts=rec.get("sub_parts", []) or None,
                 author_id=sub.faculty_id,
                 difficulty_tag="Medium",
-                difficulty_score=5.5,
+                difficulty_score=0.55,
             )
             db.add(q)
+            db.flush()  # Get q.id before adding options
+
+            # Create QuestionOption records for MCQ
+            for opt in rec.get("options", []):
+                db.add(QuestionOption(
+                    question_id=q.id,
+                    text=opt.get("text", ""),
+                    is_correct=bool(opt.get("is_correct", False)),
+                    position=ord(opt["label"].upper()) - ord("A") if opt.get("label") else 0,
+                ))
+
         db.commit()
-    except Exception as exc:  # pragma: no cover - depends on the uploaded file
-        print(f"Error during PDF extraction: {exc}")
+    except Exception as exc:  # pragma: no cover
+        print(f"[_extract_from_pdf] Error: {exc}")
         import traceback
         traceback.print_exc()
         db.rollback()

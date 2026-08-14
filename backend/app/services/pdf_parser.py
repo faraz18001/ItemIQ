@@ -132,7 +132,9 @@ def parse_question_paper(qp_path: str, images_root: str | None = None) -> list[d
         end_idx = matches[i+1].start() if i + 1 < len(matches) else len(md_text)
         content = md_text[start_idx:end_idx].strip()
         
-        # Clean up picture text tags immediately
+        # Remove entire picture-text blocks (OCR text from diagrams — images are extracted separately)
+        content = re.sub(r'<!--\s*Start of picture text\s*-->.*?<!--\s*End of picture text\s*-->', '', content, flags=re.DOTALL)
+        # Remove any remaining HTML comments
         content = re.sub(r'<!--.*?-->', '', content, flags=re.DOTALL)
         # Aggressive cleanup for page numbers, copyrights, blank pages BEFORE option extraction
         content = re.sub(r'(?:^|\n)\s*(?:\*+)?\s*(?:© UCLES|\[Turn over|BLANK PAGE).*', '', content, flags=re.DOTALL | re.IGNORECASE)
@@ -147,16 +149,8 @@ def parse_question_paper(qp_path: str, images_root: str | None = None) -> list[d
                 clean_text = opt_text.replace('|', ' ').strip()
                 clean_text = re.sub(r'<(?!sup|/sup|sub|/sub)[^>]+>', ' ', clean_text).strip()
                 options.append({'label': opt_char, 'text': clean_text, 'is_correct': False})
-            # Remove only the option rows from the table, keep header rows for context
-            lines = content.split('\n')
-            cleaned_lines = []
-            for line in lines:
-                if re.search(r'\|\s*\*\*[A-D]\*\*\s*\|', line):
-                    continue  # Skip option rows
-                if re.match(r'^\s*\|[-\s|]+\|\s*$', line):
-                    continue  # Skip separator rows like |---|---|
-                cleaned_lines.append(line)
-            content = '\n'.join(cleaned_lines)
+            # Remove all table lines (headers + options + separators) — options are already extracted
+            content = '\n'.join([line for line in content.split('\n') if '|' not in line])
         else:
             # 2. Universal option extraction (handles both inline and list options seamlessly)
             opt_pattern = re.compile(r'(?:^|\s)(?:-\s*)?\*\*([A-D])\*\*\s+')

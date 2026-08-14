@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { MarkdownStem } from './MarkdownStem';
 import { CheckCircle2, Lock, Image, BookOpenCheck, ChevronDown, ChevronUp } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -196,9 +197,11 @@ export function QuestionDetailDialog({
 
           {/* Stem */}
           {hasStem && (
-            <DialogTitle className="mt-2 text-base leading-relaxed font-medium">
-              {q.stem}
-            </DialogTitle>
+            <div className="mt-2">
+              <MarkdownStem className="text-base leading-relaxed font-medium">
+                {q.stem}
+              </MarkdownStem>
+            </div>
           )}
         </DialogHeader>
 

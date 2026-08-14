@@ -16,7 +16,7 @@ import { useData } from '@/context/DataContext';
 import { cn } from '@/lib/utils';
 import type { Question, QuestionSubPart } from '@/types';
 
-// ── Extracted image gallery ───────────────────────────────────────────────────
+// Extracted image gallery
 
 const API_BASE = import.meta.env.VITE_API_BASE ?? 'http://localhost:8000';
 
@@ -52,7 +52,7 @@ function QuestionImageGallery({ images }: { images: string[] }) {
   );
 }
 
-// ── MCQ options list ──────────────────────────────────────────────────────────
+// MCQ options list
 
 function McqOptions({ options }: { options: Question['options'] }) {
   if (!options || options.length === 0) return null;
@@ -86,7 +86,7 @@ function McqOptions({ options }: { options: Question['options'] }) {
   );
 }
 
-// ── SAQ sub-parts table ───────────────────────────────────────────────────────
+// SAQ sub-parts table
 
 function SaqSubParts({ subParts, markingScheme }: { subParts: QuestionSubPart[]; markingScheme?: string | null }) {
   const [open, setOpen] = useState(false);
@@ -152,7 +152,7 @@ function MarkSchemeRubric({ rubric }: { rubric: string }) {
   );
 }
 
-// ── Main dialog ───────────────────────────────────────────────────────────────
+// Main dialog
 
 export function QuestionDetailDialog({
   question, open, onOpenChange,
@@ -358,7 +358,7 @@ export function QuestionDetailDialog({
   );
 }
 
-// ── Shared metric card ────────────────────────────────────────────────────────
+// Shared metric card
 
 function Metric({
   label, value, sub, highlight,

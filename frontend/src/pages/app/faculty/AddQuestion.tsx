@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useData } from '@/context/DataContext';
 import { useAuth } from '@/context/AuthContext';
 
-// ── Inline reusable file drop zone ──────────────────────────────────────────
+// Inline reusable file drop zone
 
 function PdfDropZone({
   label,
@@ -90,7 +90,7 @@ function PdfDropZone({
   );
 }
 
-// ── Page ─────────────────────────────────────────────────────────────────────
+// Add Question Page Component
 
 export function AddQuestion() {
   const { session } = useAuth();

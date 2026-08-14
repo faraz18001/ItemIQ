@@ -35,15 +35,14 @@ from typing import Any
 
 import fitz  # PyMuPDF engine for spatial text extraction
 
-# ── Layout & Spatial Constants ────────────────────────────────────────────────
-# Vertical crop boundaries used when parsing layout geometry (in PDF points, 72 dpi)
+# Layout and Spatial Constants
 MARGIN_TOP: float = 60.0
 MARGIN_BOTTOM: float = 788.0
 
 # Horizontal threshold (in PDF points) for identifying left-aligned question index tokens
 Q_NUM_MAX_X: float = 85.0
 
-# ── Regex Matchers ────────────────────────────────────────────────────────────
+# Regex Matchers
 # Matches standard question numbers at line starts (e.g., "1 ", "12 ")
 _Q_NUM_RE = re.compile(r"^\s*(\d{1,2})(?:\s|$)")
 
@@ -232,7 +231,7 @@ def parse_question_paper(qp_path: str, images_root: str | None = None) -> list[d
     return questions
 
 
-# ── Mark Scheme Parser ───────────────────────────────────────────────────────
+# Mark Scheme Parser
 
 
 def parse_mark_scheme(ms_path: str) -> dict[int, str]:
@@ -325,7 +324,7 @@ def parse_mark_scheme(ms_path: str) -> dict[int, str]:
     return answers
 
 
-# ── Merge QP + MS ────────────────────────────────────────────────────────────
+# Merge QP + MS
 
 
 def _merge_answers(questions: list[dict[str, Any]], ms_answers: dict[int, str]) -> list[dict[str, Any]]:
@@ -347,7 +346,7 @@ def _merge_answers(questions: list[dict[str, Any]], ms_answers: dict[int, str]) 
     return questions
 
 
-# ── Public Entry Points ──────────────────────────────────────────────────────
+# Public Entry Points
 
 
 def parse_paper(qp_path: str, ms_path: str | None = None, images_root: str | None = None) -> list[dict[str, Any]]:

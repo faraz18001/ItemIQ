@@ -6,8 +6,7 @@ These define what the API accepts; the serializers in
 
 from pydantic import BaseModel, Field
 
-# ── auth / users ─────────────────────────────────────────────────────────────
-
+# Auth and Users
 
 class LoginRequest(BaseModel):
     identifier: str
@@ -60,7 +59,7 @@ class VerifyEmailRequest(BaseModel):
     token: str
 
 
-# ── requests ─────────────────────────────────────────────────────────────────
+# Question Requests
 
 
 class RequestPayload(BaseModel):
@@ -74,7 +73,7 @@ class AssignRequestPayload(BaseModel):
     facultyId: str | None = None
 
 
-# ── questions ────────────────────────────────────────────────────────────────
+# Questions
 
 
 class QuestionCreate(BaseModel):
@@ -112,7 +111,7 @@ class SubmissionReview(BaseModel):
     remarks: str = ""
 
 
-# ── engagement ───────────────────────────────────────────────────────────────
+# Student Engagement
 
 
 class AttemptIn(BaseModel):
@@ -124,7 +123,7 @@ class BookmarkIn(BaseModel):
     questionId: str
 
 
-# ── papers / tos ─────────────────────────────────────────────────────────────
+# Papers and TOS Blueprints
 
 
 class TosEntryDraft(BaseModel):
@@ -160,7 +159,7 @@ class PaperStatusUpdate(BaseModel):
     status: str
 
 
-# ── mock / ai ────────────────────────────────────────────────────────────────
+# Mock Exams and AI Services
 
 
 class MockStart(BaseModel):

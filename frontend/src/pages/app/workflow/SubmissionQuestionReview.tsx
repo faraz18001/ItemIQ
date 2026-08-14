@@ -25,7 +25,7 @@ import { useData } from '@/context/DataContext';
 import { cn } from '@/lib/utils';
 import type { PdfSubmission, ItemDecision } from '@/types';
 
-// ── Types matching the extracted_json shape from the parser ──────────────────
+// Types matching the extracted_json shape from the parser
 
 interface ExtractedOption {
   label: string;
@@ -52,7 +52,7 @@ interface ExtractedQuestion {
   marking_scheme?: string;
 }
 
-// ── Per-question card ─────────────────────────────────────────────────────────
+// Per-question card
 
 const API_BASE = import.meta.env.VITE_API_BASE ?? 'http://localhost:8000';
 
@@ -305,7 +305,7 @@ function QuestionCard({
   );
 }
 
-// ── Main drawer ───────────────────────────────────────────────────────────────
+// Main drawer
 
 interface SubmissionQuestionReviewProps {
   submission: PdfSubmission | null;

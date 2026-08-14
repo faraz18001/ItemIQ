@@ -32,7 +32,7 @@ def _option_label(position: int) -> str:
     return chr(ord("A") + position)
 
 
-# ── users ────────────────────────────────────────────────────────────────────
+# User Serializers
 
 
 def serialize_user(user: User) -> dict:
@@ -58,7 +58,7 @@ def serialize_auth_user(user: User) -> dict:
     return data
 
 
-# ── taxonomy / programmes ────────────────────────────────────────────────────
+# Taxonomy and Program Serializers
 
 
 def serialize_program(program) -> dict:
@@ -107,7 +107,7 @@ def serialize_taxonomy(db: Session) -> dict:
     return {"subjects": subjects, "topics": topics, "subtopics": subtopics, "descriptions": descriptions}
 
 
-# ── requests ─────────────────────────────────────────────────────────────────
+# Question Request Serializers
 
 
 def request_status(req: QuestionRequest, submitted: int) -> str:
@@ -155,7 +155,7 @@ def serialize_request(db: Session, req: QuestionRequest) -> dict:
     }
 
 
-# ── submissions ──────────────────────────────────────────────────────────────
+# PDF Submission Serializers
 
 
 def serialize_submission(sub: PdfSubmission) -> dict:
@@ -173,7 +173,7 @@ def serialize_submission(sub: PdfSubmission) -> dict:
     }
 
 
-# ── questions ────────────────────────────────────────────────────────────────
+# Question Serializers
 
 
 def _question_names(q: Question) -> dict:
@@ -285,7 +285,7 @@ def serialize_review(r) -> dict:
     }
 
 
-# ── notifications ────────────────────────────────────────────────────────────
+# Notification Serializers
 
 
 def serialize_notification(n) -> dict:
@@ -300,7 +300,7 @@ def serialize_notification(n) -> dict:
     }
 
 
-# ── TOS / papers ─────────────────────────────────────────────────────────────
+# TOS Blueprint and Paper Serializers
 
 
 def serialize_tos(tos: TOS, db: Session) -> dict:

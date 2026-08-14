@@ -49,6 +49,9 @@ class PdfSubmission(Base):
     status: Mapped[str] = mapped_column(String(32), default="PENDING_SME")
     # Stores the structured JSON preview produced by the parser before QBM sign-off
     extracted_json: Mapped[list | None] = mapped_column(JSON, nullable=True)
+    # QBM per-question accept/reject decisions stored before final approval
+    # Shape: [{"q_id": "9700_s23_p12_q1", "decision": "accepted"|"rejected", "remark": "..."}]
+    item_decisions: Mapped[list | None] = mapped_column(JSON, nullable=True)
     created_at = mapped_column(DateTime, default=_utcnow)
     updated_at = mapped_column(DateTime, default=_utcnow, onupdate=_utcnow)
 

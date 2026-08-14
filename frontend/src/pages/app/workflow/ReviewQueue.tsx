@@ -7,6 +7,7 @@ import { EmptyState } from '@/components/common/EmptyState';
 import { QuestionDetailDialog } from '@/components/common/QuestionDetailDialog';
 import { ReviewDecisionModal } from './ReviewDecisionModal';
 import { SubmissionReviewModal } from './SubmissionReviewModal';
+import { SubmissionQuestionReview } from './SubmissionQuestionReview';
 
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -86,7 +87,7 @@ export function ReviewQueue({ stage }: { stage: 'departmental' | 'med_edu' }) {
                     <Eye className="size-4 mr-2" /> View PDF
                   </Button>
                   <Button size="sm" onClick={() => setSubmissionReview(s)}>
-                    <Gavel className="size-4 mr-2" /> Review
+                    <Gavel className="size-4 mr-2" /> {stage === 'med_edu' ? 'Interactive Review' : 'Review'}
                   </Button>
                 </div>
               </div>
@@ -121,7 +122,21 @@ export function ReviewQueue({ stage }: { stage: 'departmental' | 'med_edu' }) {
 
       <QuestionDetailDialog question={preview} open={!!preview} onOpenChange={(v) => !v && setPreview(null)} />
       <ReviewDecisionModal question={review} stage={stage} open={!!review} onOpenChange={(v) => !v && setReview(null)} />
-      <SubmissionReviewModal submission={submissionReview} stage={stage} open={!!submissionReview} onOpenChange={(v) => !v && setSubmissionReview(null)} />
+      
+      {stage === 'departmental' ? (
+        <SubmissionReviewModal 
+          submission={submissionReview} 
+          stage={stage} 
+          open={!!submissionReview} 
+          onOpenChange={(v) => !v && setSubmissionReview(null)} 
+        />
+      ) : (
+        <SubmissionQuestionReview 
+          submission={submissionReview} 
+          open={!!submissionReview} 
+          onOpenChange={(v) => !v && setSubmissionReview(null)} 
+        />
+      )}
     </div>
   );
 }

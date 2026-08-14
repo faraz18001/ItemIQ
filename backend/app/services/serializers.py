@@ -168,6 +168,7 @@ def serialize_submission(sub: PdfSubmission) -> dict:
         "references": sub.references,
         "status": sub.status,
         "extractedJson": sub.extracted_json,
+        "itemDecisions": sub.item_decisions,
         "createdAt": _iso(sub.created_at),
     }
 

@@ -2,6 +2,7 @@ import os
 from pathlib import Path
 import shutil
 import uuid
+from typing import List
 
 from app.config import get_settings
 from app.core.security import get_current_user, has_role, require_roles
@@ -16,11 +17,13 @@ from app.models import (
     Subtopic,
     User,
 )
+from app.models.engagement import Notification
 from app.schemas import QuestionCreate, QuestionUpdate, ReviewDecision
 from app.services.serializers import serialize_question, serialize_submission
 from app.services.stats import attempt_aggregates
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 from fastapi.responses import FileResponse
+from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 router = APIRouter(prefix="/questions", tags=["Questions & Workflows"])
@@ -28,6 +31,17 @@ router = APIRouter(prefix="/questions", tags=["Questions & Workflows"])
 settings = get_settings()
 
 DIFFICULTY_SCORE = {"Easy": 0.35, "Medium": 0.55, "Hard": 0.75}
+
+
+# ── Pydantic schemas for item decisions ───────────────────────────────────────
+
+class ItemDecision(BaseModel):
+    q_id: str
+    decision: str   # "accepted" | "rejected"
+    remark: str = ""
+
+class ItemDecisionsPayload(BaseModel):
+    decisions: List[ItemDecision]
 
 
 def _write_question(db: Session, user: User, payload: QuestionCreate, question: Question):
@@ -245,7 +259,10 @@ def submit_pdf(
     extracted_preview: list | None = None
     try:
         from app.services.pdf_parser import parse_paper
-        extracted_preview = parse_paper(str(qp_path), str(ms_path))
+        from app.config import get_settings
+        cfg = get_settings()
+        images_root = str(Path(cfg.upload_dir).parent)
+        extracted_preview = parse_paper(str(qp_path), str(ms_path), images_root=images_root)
         # Trim heavy fields for the preview JSON
         for rec in extracted_preview:
             rec.pop("pdf", None)
@@ -338,9 +355,38 @@ def review_submission(
     return {"status": sub.status, "message": "Review logged successfully."}
 
 
+@router.post("/submissions/{sub_id}/item-decisions")
+def save_item_decisions(
+    sub_id: int,
+    payload: ItemDecisionsPayload,
+    user: User = Depends(require_roles("qbm", "hod", "admin")),
+    db: Session = Depends(get_db),
+):
+    """QBM saves per-question accept/reject decisions against extracted_json.
+    This endpoint is idempotent — calling it again replaces previous decisions."""
+    sub = db.get(PdfSubmission, sub_id)
+    if not sub:
+        raise HTTPException(status_code=404, detail="Submission not found")
+    if sub.status != "PENDING_QBM":
+        raise HTTPException(
+            status_code=400,
+            detail=f"Item decisions can only be saved on PENDING_QBM submissions (current: {sub.status})",
+        )
+
+    sub.item_decisions = [d.model_dump() for d in payload.decisions]
+    db.commit()
+    db.refresh(sub)
+    return serialize_submission(sub)
+
+
 def _extract_from_pdf(db: Session, sub: PdfSubmission, viewer: User) -> None:
-    """Called on QBM final approval.  Converts the structured preview JSON into
-    real Question + QuestionOption database rows."""
+    """Called on QBM final approval.
+
+    - Reads per-question decisions from sub.item_decisions (saved by QBM interactively).
+    - Only inserts ACCEPTED questions into the question table.
+    - Sends a Notification to the faculty member for every REJECTED question.
+    - Falls back to accepting all questions if no item_decisions are set.
+    """
     try:
         from app.services.pdf_parser import parse_paper
         from app.config import get_settings
@@ -362,9 +408,36 @@ def _extract_from_pdf(db: Session, sub: PdfSubmission, viewer: User) -> None:
                 images_root=images_root,
             )
 
-        print(f"[_extract_from_pdf] Inserting {len(records)} questions from submission {sub.id}")
+        # Build lookup: q_id -> {decision, remark}
+        decisions: dict[str, dict] = {}
+        if sub.item_decisions:
+            for d in sub.item_decisions:
+                decisions[d["q_id"]] = d
+
+        accepted_count = 0
+        rejected_count = 0
 
         for rec in records:
+            q_id = rec.get("id", "")
+            item_dec = decisions.get(q_id, {})
+            decision = item_dec.get("decision", "accepted")   # default accept if no decision set
+
+            if decision == "rejected":
+                rejected_count += 1
+                remark = item_dec.get("remark", "No reason given.")
+                stem_preview = (rec.get("stem") or "")[:80]
+                # Notify the faculty member
+                db.add(Notification(
+                    recipient_id=sub.faculty_id,
+                    type="Correction_Required",
+                    message=(
+                        f'QBM rejected question "{stem_preview}…" '
+                        f'from your submission. Reason: {remark}'
+                    ),
+                ))
+                continue  # skip inserting this question
+
+            accepted_count += 1
             q = Question(
                 stem=rec.get("stem") or rec.get("text", "Empty Question").strip(),
                 q_type=rec.get("q_type", "MCQ"),
@@ -383,7 +456,6 @@ def _extract_from_pdf(db: Session, sub: PdfSubmission, viewer: User) -> None:
             db.add(q)
             db.flush()  # Get q.id before adding options
 
-            # Create QuestionOption records for MCQ
             for opt in rec.get("options", []):
                 db.add(QuestionOption(
                     question_id=q.id,
@@ -392,6 +464,10 @@ def _extract_from_pdf(db: Session, sub: PdfSubmission, viewer: User) -> None:
                     position=ord(opt["label"].upper()) - ord("A") if opt.get("label") else 0,
                 ))
 
+        print(
+            f"[_extract_from_pdf] sub={sub.id}: "
+            f"{accepted_count} inserted, {rejected_count} rejected"
+        )
         db.commit()
     except Exception as exc:  # pragma: no cover
         print(f"[_extract_from_pdf] Error: {exc}")

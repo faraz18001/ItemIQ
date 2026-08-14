@@ -93,6 +93,7 @@ interface DataCtx {
     decision: 'accepted' | 'correction_required' | 'rejected';
     remarks: string;
   }) => Promise<void>;
+  saveItemDecisions: (submissionId: string, decisions: { qId: string; decision: 'accepted' | 'rejected'; remark: string }[]) => Promise<void>;
   assignRequest: (requestId: string, facultyId: string) => Promise<void>;
   generateRequest: (input: {
     subtopicId: string; qCount: number; difficulty: Difficulty; qType?: 'MCQ' | 'SAQ';
@@ -275,6 +276,13 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     await Promise.all([loadSubmissions(), loadRequests().catch(() => {}), loadQuestions()]);
   }, [loadSubmissions, loadRequests, loadQuestions]);
 
+  const saveItemDecisions = useCallback<DataCtx['saveItemDecisions']>(async (submissionId, decisions) => {
+    // Convert camelCase qId → snake_case q_id expected by backend
+    const payload = { decisions: decisions.map((d) => ({ q_id: d.qId, decision: d.decision, remark: d.remark })) };
+    await api.post(`/questions/submissions/${submissionId}/item-decisions`, payload);
+    await loadSubmissions();
+  }, [loadSubmissions]);
+
   const assignRequest = useCallback<DataCtx['assignRequest']>(async (requestId, facultyId) => {
     await api.post(`/requests/${requestId}/assign`, { facultyId });
     await loadRequests();
@@ -356,13 +364,13 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const value = useMemo<DataCtx>(() => ({
     users, taxonomy, questions, bankQuestions, requests, tos, papers, notifications, bookmarks, submissions,
     progress, loading, error, refresh, userById, programs,
-    addQuestion, updateQuestion, submitQuestion, reviewDecision, reviewSubmission, assignRequest,
+    addQuestion, updateQuestion, submitQuestion, reviewDecision, reviewSubmission, saveItemDecisions, assignRequest,
     generateRequest, uploadSubmissionPdf, markNotificationRead, markAllRead, recordAttempt, toggleBookmark,
     createPaper, setPaperStatus, createTos,
   }), [
     users, taxonomy, questions, bankQuestions, requests, tos, papers, notifications, bookmarks, submissions,
     progress, loading, error, refresh, userById, programs,
-    addQuestion, updateQuestion, submitQuestion, reviewDecision, reviewSubmission, assignRequest,
+    addQuestion, updateQuestion, submitQuestion, reviewDecision, reviewSubmission, saveItemDecisions, assignRequest,
     generateRequest, uploadSubmissionPdf, markNotificationRead, markAllRead, recordAttempt, toggleBookmark,
     createPaper, setPaperStatus, createTos,
   ]);

@@ -488,6 +488,13 @@ export interface SubmissionReviewLog {
   createdAt: string;
 }
 
+/** A QBM per-question accept/reject decision saved against a PDF submission. */
+export interface ItemDecision {
+  qId: string;
+  decision: 'accepted' | 'rejected';
+  remark: string;
+}
+
 export interface PdfSubmission {
   id: string;
   requestId: string | null;
@@ -499,6 +506,8 @@ export interface PdfSubmission {
   status: string;
   /** Structured preview JSON produced by the parser — shown during SME/QBM review. */
   extractedJson: any[] | null;
+  /** QBM per-question decisions, persisted to DB on each save. */
+  itemDecisions: ItemDecision[] | null;
   createdAt: string;
 }
 

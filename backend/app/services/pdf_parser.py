@@ -54,9 +54,9 @@ MARGIN_BOTTOM: float = 788.0
 Q_NUM_MAX_X: float = 85.0      # anything left of this column is a candidate question number
 
 # Patterns
-_Q_NUM_RE = re.compile(r"^\s*(\d{1,2})\s")
+_Q_NUM_RE = re.compile(r"^\s*(\d{1,2})(?:\s|$)")
 _MARK_RE   = re.compile(r"\[\s*(\d+)\s*\]")
-_MCQ_OPT_RE = re.compile(r"^\s*([A-D])\s+(.*)")          # "A  some text"
+_MCQ_OPT_RE = re.compile(r"^\s*([A-D])(?:\s+(.*)|$)")          # "A" or "A  some text"
 _SUBPART_RE = re.compile(r"^\s*(\([a-z]+\)|[ivx]+\))\s+(.+)")  # "(a) explain..."
 _MS_MCQ_ANS_RE = re.compile(r"^\s*(\d{1,2})\s+([A-D])\b")     # "1  B" in MS
 _MS_ALLOW_RE   = re.compile(r"(?i)allow|accept|credit")
@@ -94,199 +94,106 @@ def _paper_meta(pdf_path: str) -> dict:
     }
 
 
-def _extract_image_blocks(page: fitz.Page, q_rect: fitz.Rect, out_dir: Path, prefix: str, idx: int) -> list[str]:
-    """Clip all image blocks that overlap with the question bounding box and save as PNG."""
-    saved: list[str] = []
-    out_dir.mkdir(parents=True, exist_ok=True)
-    for img_info in page.get_images(full=True):
-        xref = img_info[0]
-        # Recover image bounding rect on the page
-        img_rects = page.get_image_rects(xref)
-        for img_rect in img_rects:
-            if q_rect.intersects(img_rect):
-                clip_rect = img_rect & q_rect
-                if clip_rect.is_empty:
-                    continue
-                pix = page.get_pixmap(clip=clip_rect, dpi=150)
-                fname = f"{prefix}_q{idx}_img{len(saved)+1}.png"
-                fpath = out_dir / fname
-                pix.save(str(fpath))
-                saved.append(fname)
-    return saved
-
-
-# ── Question Paper Parser ────────────────────────────────────────────────────
-
-
 def parse_question_paper(qp_path: str, images_root: str | None = None) -> list[dict[str, Any]]:
-    """Parse the Question Paper PDF.
+    """Parse the Question Paper PDF using pymupdf4llm.
 
     Returns a list of raw question records.  Each record has:
       id, q_num, subject, session, paper_type, year, marks,
       stem, options (MCQ), sub_parts (SAQ), images, regions, pdf.
     """
+    import pymupdf4llm
+    
     meta = _paper_meta(qp_path)
     prefix = f"{meta['subject']}_{meta['session']}_{meta['paper_type']}"
 
-    img_out_dir: Path | None = None
+    img_out_dir = None
     if images_root:
-        img_out_dir = Path(images_root) / _IMAGES_SUBDIR
+        img_out_dir = str(Path(images_root) / _IMAGES_SUBDIR)
+        os.makedirs(img_out_dir, exist_ok=True)
 
-    doc = fitz.open(qp_path)
+    # Convert the PDF to Markdown with images
+    md_text = pymupdf4llm.to_markdown(
+        qp_path,
+        write_images=bool(images_root),
+        image_path=img_out_dir,
+        image_format="png",
+        dpi=150
+    )
+
+    # Match: "- **1** " OR "**1** " (but not followed by a newline, to avoid page numbers)
+    start_pattern = r'(?:^|\n)[ \t]*(?:-[ \t]*\*\*(\d{1,2})\*\*\s+|\*\*(\d{1,2})\*\*[ \t]+(?!\n))'
+    matches = list(re.finditer(start_pattern, md_text))
+    
     questions: list[dict[str, Any]] = []
-    current_q: dict[str, Any] | None = None
-    expected_q = 1
-
-    for page_num in range(len(doc)):
-        page = doc[page_num]
-        page_dict = page.get_text("dict")
-        page_width = page.rect.width
-
-        # Collect all text lines with bounding boxes
-        all_lines: list[tuple] = []
-        for block in page_dict["blocks"]:
-            if block.get("type") != 0:
-                continue
-            for line in block["lines"]:
-                x0, y0, x1, y1 = line["bbox"]
-                line_text = " ".join(span["text"] for span in line["spans"]).strip()
-                if line_text:
-                    all_lines.append((x0, y0, x1, y1, line_text))
-
-        all_lines.sort(key=lambda t: (round(t[1] / 5) * 5, t[0]))
-
-        for x0, y0, _x1, y1, line_text in all_lines:
-            if y0 < MARGIN_TOP or y0 > MARGIN_BOTTOM:
-                continue
-
-            # ── Detect new question number in left margin ──
-            if x0 < Q_NUM_MAX_X:
-                m = _Q_NUM_RE.match(line_text)
-                if m and int(m.group(1)) == expected_q:
-                    if current_q is not None:
-                        _finalise_question(current_q)
-                        questions.append(current_q)
-                    current_q = _new_question(expected_q, meta, qp_path, prefix)
-                    expected_q += 1
-                    # Strip the number prefix from the first line of the stem
-                    stripped = _Q_NUM_RE.sub("", line_text, count=1).strip()
-                    if stripped:
-                        current_q["_raw_lines"].append((x0, stripped))
-                    continue
-
-            if current_q is None:
-                continue
-
-            current_q["_raw_lines"].append((x0, line_text))
-
-            # Accumulate marks
-            for m in _MARK_RE.findall(line_text):
-                current_q["marks"] += int(m)
-
-            # Expand bounding box for this question on this page
-            if not current_q["regions"] or current_q["regions"][-1]["page"] != page_num:
-                current_q["regions"].append({
-                    "page": page_num,
-                    "rect": [0.0, max(0.0, y0 - 10), page_width, y1 + 10],
-                })
+    
+    for i, m in enumerate(matches):
+        q_num = int(m.group(1) or m.group(2))
+        start_idx = m.end()
+        end_idx = matches[i+1].start() if i + 1 < len(matches) else len(md_text)
+        content = md_text[start_idx:end_idx].strip()
+        
+        # Clean up picture text tags immediately
+        content = re.sub(r'<!--.*?-->', '', content, flags=re.DOTALL)
+        
+        options = []
+        
+        # 1. Try to find a Markdown table that contains options
+        table_opt_pattern = re.compile(r'\|\s*\*\*([A-D])\*\*\s*\|(.*?)(?=\n|$)', re.DOTALL)
+        table_matches = table_opt_pattern.findall(content)
+        if table_matches:
+            for opt_char, opt_text in table_matches:
+                clean_text = opt_text.replace('|', ' ').replace('<br>', ' ').strip()
+                options.append({'label': opt_char, 'text': clean_text, 'is_correct': False})
+            content = re.sub(r'\|.*?\n?', '', content)
+        else:
+            # 2. Try to find bulleted list options
+            list_opt_pattern = re.compile(r'(?:^|\n)\s*(?:-\s*)?\*\*([A-D])\*\*\s+(.*?)(?=(?:\n\s*(?:-\s*)?\*\*[A-D]\*\*)|$)', re.DOTALL)
+            list_matches = list_opt_pattern.findall(content)
+            if list_matches:
+                for opt_char, opt_text in list_matches:
+                    options.append({'label': opt_char, 'text': opt_text.strip(), 'is_correct': False})
+                content = list_opt_pattern.sub('', content)
             else:
-                current_q["regions"][-1]["rect"][3] = max(current_q["regions"][-1]["rect"][3], y1 + 10)
-
-        # ── Extract images for current question on this page ──
-        if img_out_dir and current_q and current_q["regions"]:
-            last_region = current_q["regions"][-1]
-            if last_region["page"] == page_num:
-                r = last_region["rect"]
-                q_rect = fitz.Rect(r[0], r[1], r[2], r[3])
-                imgs = _extract_image_blocks(page, q_rect, img_out_dir, prefix, current_q["q_num"])
-                current_q["images"].extend(imgs)
-
-    if current_q is not None:
-        _finalise_question(current_q)
-        questions.append(current_q)
-
-    doc.close()
-
-    # Default 1 mark for MCQ papers (p1x variants)
-    for q in questions:
-        if q["marks"] == 0 and meta["paper_type"].startswith("p1"):
-            q["marks"] = 1
+                # 3. Try inline options (e.g., A 20 m B 25 m C 30 m D 40 m)
+                inline_match = re.search(r'\bA\s+(.*?)\bB\s+(.*?)\bC\s+(.*?)\bD\s+(.*)', content, re.DOTALL)
+                if inline_match:
+                    options.append({'label': 'A', 'text': inline_match.group(1).strip(), 'is_correct': False})
+                    options.append({'label': 'B', 'text': inline_match.group(2).strip(), 'is_correct': False})
+                    options.append({'label': 'C', 'text': inline_match.group(3).strip(), 'is_correct': False})
+                    options.append({'label': 'D', 'text': inline_match.group(4).strip(), 'is_correct': False})
+                    content = content[:inline_match.start()].strip()
+                    
+        # Extract Images
+        images = []
+        img_pattern = re.compile(r'!\[.*?\]\((.*?)\)')
+        for img_match in img_pattern.findall(content):
+            basename = os.path.basename(img_match)
+            images.append(basename)
+        content = img_pattern.sub('', content)
+        
+        # Clean up any trailing text like page numbers
+        content = re.sub(r'(?:^|\n)© UCLES.*', '', content, flags=re.DOTALL)
+        content = content.strip()
+            
+        questions.append({
+            "id":         f"{prefix}_q{q_num}",
+            "q_num":      q_num,
+            "q_type":     "MCQ" if options else "SAQ",
+            "subject":    meta["subject"],
+            "session":    meta["session"],
+            "paper_type": meta["paper_type"],
+            "year":       meta["year"],
+            "topic":      "Unknown",
+            "marks":      1 if options else 0,
+            "stem":       content,
+            "options":    options,
+            "sub_parts":  [],
+            "images":     images,
+            "regions":    [],
+            "pdf":        os.path.abspath(qp_path),
+        })
 
     return questions
-
-
-def _new_question(q_num: int, meta: dict, qp_path: str, prefix: str) -> dict[str, Any]:
-    return {
-        "id":         f"{prefix}_q{q_num}",
-        "q_num":      q_num,
-        "q_type":     "MCQ",   # will be corrected in _finalise_question
-        "subject":    meta["subject"],
-        "session":    meta["session"],
-        "paper_type": meta["paper_type"],
-        "year":       meta["year"],
-        "topic":      "Unknown",
-        "marks":      0,
-        "stem":       "",
-        "options":    [],
-        "sub_parts":  [],
-        "images":     [],
-        "regions":    [],
-        "pdf":        os.path.abspath(qp_path),
-        "_raw_lines": [],  # temp; removed in _finalise_question
-    }
-
-
-def _finalise_question(q: dict) -> None:
-    """Post-process raw_lines into stem, options, sub_parts, and q_type."""
-    raw = q.pop("_raw_lines", [])
-
-    stem_lines: list[str] = []
-    options: list[dict] = []
-    sub_parts: list[dict] = []
-    current_sub: dict | None = None
-
-    for x0, text in raw:
-        # MCQ option line: "A   Glomerular filtration"
-        opt_m = _MCQ_OPT_RE.match(text)
-        if opt_m and x0 > Q_NUM_MAX_X:
-            options.append({
-                "label":      opt_m.group(1),
-                "text":       opt_m.group(2).strip(),
-                "is_correct": False,
-            })
-            continue
-
-        # SAQ sub-part: "(a) explain..." or "i) state..."
-        sub_m = _SUBPART_RE.match(text)
-        if sub_m and x0 > Q_NUM_MAX_X and not options:
-            if current_sub:
-                sub_parts.append(current_sub)
-            marks = sum(int(m) for m in _MARK_RE.findall(text))
-            current_sub = {
-                "label":  sub_m.group(1),
-                "text":   _MARK_RE.sub("", text).strip(),
-                "marks":  marks,
-                "rubric": "",
-            }
-            continue
-
-        # Continuation line for current sub-part
-        if current_sub is not None and x0 > Q_NUM_MAX_X:
-            current_sub["text"] += " " + _MARK_RE.sub("", text).strip()
-            marks = sum(int(m) for m in _MARK_RE.findall(text))
-            current_sub["marks"] += marks
-            continue
-
-        # Otherwise: stem body
-        stem_lines.append(_MARK_RE.sub("", text).strip())
-
-    if current_sub:
-        sub_parts.append(current_sub)
-
-    q["stem"] = " ".join(s for s in stem_lines if s).strip()
-    q["options"] = options
-    q["sub_parts"] = sub_parts
-    q["q_type"] = "MCQ" if options else ("SAQ" if sub_parts else "MCQ")
 
 
 # ── Mark Scheme Parser ───────────────────────────────────────────────────────

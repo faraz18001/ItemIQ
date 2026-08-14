@@ -134,6 +134,8 @@ def parse_question_paper(qp_path: str, images_root: str | None = None) -> list[d
         
         # Clean up picture text tags immediately
         content = re.sub(r'<!--.*?-->', '', content, flags=re.DOTALL)
+        # Aggressive cleanup for page numbers, copyrights, blank pages BEFORE option extraction
+        content = re.sub(r'(?:^|\n)\s*(?:\*+)?\s*(?:© UCLES|\[Turn over|BLANK PAGE).*', '', content, flags=re.DOTALL | re.IGNORECASE)
         
         options = []
         
@@ -142,26 +144,26 @@ def parse_question_paper(qp_path: str, images_root: str | None = None) -> list[d
         table_matches = table_opt_pattern.findall(content)
         if table_matches:
             for opt_char, opt_text in table_matches:
-                clean_text = opt_text.replace('|', ' ').replace('<br>', ' ').strip()
+                clean_text = opt_text.replace('|', ' ').strip()
+                clean_text = re.sub(r'<[^>]+>', ' ', clean_text).strip()
                 options.append({'label': opt_char, 'text': clean_text, 'is_correct': False})
-            content = re.sub(r'\|.*?\n?', '', content)
+            # Remove all lines containing a pipe (table rows)
+            content = '\n'.join([line for line in content.split('\n') if '|' not in line])
         else:
-            # 2. Try to find bulleted list options
-            list_opt_pattern = re.compile(r'(?:^|\n)\s*(?:-\s*)?\*\*([A-D])\*\*\s+(.*?)(?=(?:\n\s*(?:-\s*)?\*\*[A-D]\*\*)|$)', re.DOTALL)
-            list_matches = list_opt_pattern.findall(content)
-            if list_matches:
-                for opt_char, opt_text in list_matches:
-                    options.append({'label': opt_char, 'text': opt_text.strip(), 'is_correct': False})
-                content = list_opt_pattern.sub('', content)
-            else:
-                # 3. Try inline options (e.g., A 20 m B 25 m C 30 m D 40 m)
-                inline_match = re.search(r'\bA\s+(.*?)\bB\s+(.*?)\bC\s+(.*?)\bD\s+(.*)', content, re.DOTALL)
-                if inline_match:
-                    options.append({'label': 'A', 'text': inline_match.group(1).strip(), 'is_correct': False})
-                    options.append({'label': 'B', 'text': inline_match.group(2).strip(), 'is_correct': False})
-                    options.append({'label': 'C', 'text': inline_match.group(3).strip(), 'is_correct': False})
-                    options.append({'label': 'D', 'text': inline_match.group(4).strip(), 'is_correct': False})
-                    content = content[:inline_match.start()].strip()
+            # 2. Universal option extraction (handles both inline and list options seamlessly)
+            opt_pattern = re.compile(r'(?:^|\s)(?:-\s*)?\*\*([A-D])\*\*\s+')
+            opt_matches = list(opt_pattern.finditer(content))
+            
+            # Only extract if we found at least 2 options to avoid false positives
+            if len(opt_matches) >= 2:
+                for idx, m in enumerate(opt_matches):
+                    opt_char = m.group(1)
+                    start = m.end()
+                    end = opt_matches[idx+1].start() if idx + 1 < len(opt_matches) else len(content)
+                    opt_text = content[start:end]
+                    clean_text = re.sub(r'<[^>]+>', ' ', opt_text).strip()
+                    options.append({'label': opt_char, 'text': clean_text, 'is_correct': False})
+                content = content[:opt_matches[0].start()].strip()
                     
         # Extract Images
         images = []
@@ -171,14 +173,24 @@ def parse_question_paper(qp_path: str, images_root: str | None = None) -> list[d
             images.append(basename)
         content = img_pattern.sub('', content)
         
-        # Clean up any trailing text like page numbers
-        content = re.sub(r'(?:^|\n)© UCLES.*', '', content, flags=re.DOTALL)
+        # Remove lingering HTML tags from stem
+        content = re.sub(r'<[^>]+>', ' ', content)
         content = content.strip()
+        
+        # Fallback for MCQ papers with completely missed options
+        is_mcq_paper = meta["paper_type"].startswith("p1")
+        if is_mcq_paper and not options:
+            options = [
+                {'label': 'A', 'text': '', 'is_correct': False},
+                {'label': 'B', 'text': '', 'is_correct': False},
+                {'label': 'C', 'text': '', 'is_correct': False},
+                {'label': 'D', 'text': '', 'is_correct': False},
+            ]
             
         questions.append({
             "id":         f"{prefix}_q{q_num}",
             "q_num":      q_num,
-            "q_type":     "MCQ" if options else "SAQ",
+            "q_type":     "MCQ" if is_mcq_paper else ("SAQ" if not options else "MCQ"),
             "subject":    meta["subject"],
             "session":    meta["session"],
             "paper_type": meta["paper_type"],

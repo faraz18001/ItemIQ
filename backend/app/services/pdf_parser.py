@@ -145,10 +145,18 @@ def parse_question_paper(qp_path: str, images_root: str | None = None) -> list[d
         if table_matches:
             for opt_char, opt_text in table_matches:
                 clean_text = opt_text.replace('|', ' ').strip()
-                clean_text = re.sub(r'<[^>]+>', ' ', clean_text).strip()
+                clean_text = re.sub(r'<(?!sup|/sup|sub|/sub)[^>]+>', ' ', clean_text).strip()
                 options.append({'label': opt_char, 'text': clean_text, 'is_correct': False})
-            # Remove all lines containing a pipe (table rows)
-            content = '\n'.join([line for line in content.split('\n') if '|' not in line])
+            # Remove only the option rows from the table, keep header rows for context
+            lines = content.split('\n')
+            cleaned_lines = []
+            for line in lines:
+                if re.search(r'\|\s*\*\*[A-D]\*\*\s*\|', line):
+                    continue  # Skip option rows
+                if re.match(r'^\s*\|[-\s|]+\|\s*$', line):
+                    continue  # Skip separator rows like |---|---|
+                cleaned_lines.append(line)
+            content = '\n'.join(cleaned_lines)
         else:
             # 2. Universal option extraction (handles both inline and list options seamlessly)
             opt_pattern = re.compile(r'(?:^|\s)(?:-\s*)?\*\*([A-D])\*\*\s+')
@@ -161,7 +169,7 @@ def parse_question_paper(qp_path: str, images_root: str | None = None) -> list[d
                     start = m.end()
                     end = opt_matches[idx+1].start() if idx + 1 < len(opt_matches) else len(content)
                     opt_text = content[start:end]
-                    clean_text = re.sub(r'<[^>]+>', ' ', opt_text).strip()
+                    clean_text = re.sub(r'<(?!sup|/sup|sub|/sub)[^>]+>', ' ', opt_text).strip()
                     options.append({'label': opt_char, 'text': clean_text, 'is_correct': False})
                 content = content[:opt_matches[0].start()].strip()
                     
@@ -173,8 +181,12 @@ def parse_question_paper(qp_path: str, images_root: str | None = None) -> list[d
             images.append(basename)
         content = img_pattern.sub('', content)
         
-        # Remove lingering HTML tags from stem
-        content = re.sub(r'<[^>]+>', ' ', content)
+        # Convert <br> tags to markdown line breaks, preserve <sup>/<sub>
+        content = re.sub(r'<br\s*/?>', '  \n', content)
+        # Strip remaining HTML tags EXCEPT <sup>, </sup>, <sub>, </sub>
+        content = re.sub(r'<(?!sup|/sup|sub|/sub)[^>]+>', ' ', content)
+        # Collapse excessive blank lines (more than 2 newlines → 2)
+        content = re.sub(r'\n{3,}', '\n\n', content)
         content = content.strip()
         
         # Fallback for MCQ papers with completely missed options

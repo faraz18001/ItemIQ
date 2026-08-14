@@ -8,6 +8,7 @@
  * "Final Approve" is only enabled once every question has been reviewed.
  */
 import { useState, useEffect, useCallback } from 'react';
+import { MarkdownStem } from '@/components/common/MarkdownStem';
 import {
   Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription,
 } from '@/components/ui/sheet';
@@ -124,7 +125,7 @@ function QuestionCard({
               </span>
             )}
           </div>
-          <p className="text-sm leading-relaxed line-clamp-3">{q.stem || '(no stem)'}</p>
+          <MarkdownStem truncate className="text-sm leading-relaxed line-clamp-3">{q.stem || '(no stem)'}</MarkdownStem>
         </div>
 
         {/* Decision buttons */}

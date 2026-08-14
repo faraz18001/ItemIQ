@@ -298,10 +298,18 @@ def parse_mark_scheme(ms_path: str) -> dict[int, str]:
     Returns a dict mapping question number → answer string.
     For MCQs this is a single letter ("B").
     For SAQs this is the full rubric text.
+
+    Handles two layouts:
+      1. Inline: "1  B"  (Cambridge printed MS PDFs)
+      2. Table:  q-number at x≈44, answer letter at x≈180 same y-row
+                 (generated / structured MS PDFs)
     """
     answers: dict[int, str] = {}
     if not ms_path or not os.path.exists(ms_path):
         return answers
+
+    _SINGLE_INT  = re.compile(r"^\d{1,2}$")
+    _SINGLE_ABCD = re.compile(r"^[A-D]$")
 
     doc = fitz.open(ms_path)
     current_q_num: int | None = None
@@ -311,7 +319,7 @@ def parse_mark_scheme(ms_path: str) -> dict[int, str]:
         page = doc[page_num]
         page_dict = page.get_text("dict")
 
-        all_lines: list[tuple] = []
+        all_spans: list[tuple] = []   # (x0, y0, text)
         for block in page_dict["blocks"]:
             if block.get("type") != 0:
                 continue
@@ -319,33 +327,51 @@ def parse_mark_scheme(ms_path: str) -> dict[int, str]:
                 x0, y0, x1, y1 = line["bbox"]
                 text = " ".join(span["text"] for span in line["spans"]).strip()
                 if text:
-                    all_lines.append((x0, y0, text))
+                    all_spans.append((x0, y0, text))
 
-        all_lines.sort(key=lambda t: (round(t[1] / 5) * 5, t[0]))
+        all_spans.sort(key=lambda t: (round(t[1] / 5) * 5, t[0]))
 
-        for x0, _y0, text in all_lines:
-            # Cambridge MCQ answer table row: "1  B"
-            mcq_m = _MS_MCQ_ANS_RE.match(text)
-            if mcq_m:
-                q_num = int(mcq_m.group(1))
-                answers[q_num] = mcq_m.group(2).strip()
-                continue
+        # ── Group tokens into y-rows (bucket size 8 px) ──
+        rows: list[list[tuple]] = []
+        for span in all_spans:
+            x0, y0, text = span
+            if not rows or abs(rows[-1][0][1] - y0) > 8:
+                rows.append([(x0, y0, text)])
+            else:
+                rows[-1].append((x0, y0, text))
 
-            # SAQ: new question row in left margin
-            num_m = _Q_NUM_RE.match(text)
-            if num_m and x0 < Q_NUM_MAX_X:
-                if current_q_num is not None and current_rubric:
-                    existing = answers.get(current_q_num, "")
-                    rubric_text = " ".join(current_rubric).strip()
-                    answers[current_q_num] = (existing + " " + rubric_text).strip() if existing else rubric_text
-                current_q_num = int(num_m.group(1))
-                current_rubric = [_Q_NUM_RE.sub("", text, count=1).strip()]
-                continue
+        for row in rows:
+            tokens = [t[2] for t in row]
 
-            if current_q_num is not None:
-                current_rubric.append(text.strip())
+            # ── Layout 1: inline "1  B" in a single span ──
+            for tok in tokens:
+                mcq_m = _MS_MCQ_ANS_RE.match(tok)
+                if mcq_m:
+                    answers[int(mcq_m.group(1))] = mcq_m.group(2).strip()
 
-    # Flush last
+            # ── Layout 2: table cell – integer + single ABCD on same row ──
+            ints  = [int(t) for t in tokens if _SINGLE_INT.match(t)]
+            abcds = [t for t in tokens if _SINGLE_ABCD.match(t)]
+            if ints and abcds and not any(_MS_MCQ_ANS_RE.match(t) for t in tokens):
+                for q_num, ans in zip(ints, abcds):
+                    if 1 <= q_num <= 100:
+                        answers[q_num] = ans
+
+            # ── SAQ rubric: standalone q-number in left margin ──
+            for x0, y0, text in row:
+                num_m = _Q_NUM_RE.match(text)
+                if num_m and x0 < Q_NUM_MAX_X and not _SINGLE_INT.match(text.strip()):
+                    if current_q_num is not None and current_rubric:
+                        existing = answers.get(current_q_num, "")
+                        rubric_text = " ".join(current_rubric).strip()
+                        answers[current_q_num] = (existing + " " + rubric_text).strip() if existing else rubric_text
+                    current_q_num = int(num_m.group(1))
+                    current_rubric = [_Q_NUM_RE.sub("", text, count=1).strip()]
+                elif current_q_num is not None and x0 > Q_NUM_MAX_X:
+                    if text not in abcds:  # don't duplicate answer
+                        current_rubric.append(text.strip())
+
+    # Flush last SAQ rubric
     if current_q_num is not None and current_rubric:
         existing = answers.get(current_q_num, "")
         rubric_text = " ".join(current_rubric).strip()
